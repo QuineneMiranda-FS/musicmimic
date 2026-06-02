@@ -88,7 +88,19 @@ npx sequelize-cli db:create
 npx sequelize-cli db:migrate
 ```
 
-### 5. Start the Application
+### 5. Setup JWT User Authentication/Spotify API integration
+
+```bash
+npm install jsonwebtoken
+```
+
+```env
+# JWT Security Settings
+JWT_SECRET=your_random_secret_string_here
+JWT_EXPIRES_IN=1h
+```
+
+### 6. Start the Application
 
 - **Development Mode:**
 

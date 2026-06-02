@@ -43,7 +43,7 @@ yarn-debug.log*
 *.txt
 
 # ---------------------------------------------------------------------
-# Secrets and API Keys (Crucial for security)
+# Secrets and API Keys 
 # ---------------------------------------------------------------------
 .env
 .env.local
