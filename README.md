@@ -88,6 +88,22 @@ npx sequelize-cli db:create
 npx sequelize-cli db:migrate
 ```
 
+### 5. Start the Application
+
+- **Development Mode:**
+
+  ```bash
+  npm run dev
+  ```
+
+- **Production Mode:**
+
+  ```bash
+  npm start
+  ```
+
+Once started, open your web browser and navigate to: **`http://localhost:3001`**
+
 ---
 
 ## Links
