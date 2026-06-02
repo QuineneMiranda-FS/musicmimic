@@ -77,7 +77,9 @@ PORT=3001
 ```
 
 - Note: PORT=3000 is for your Express web server, while DB_PORT=3001 is strictly for your MySQL database connection
--
+- Note: This project uses a custom src/ directory layout managed by the .sequelizerc file. Make sure you update the Sequelize config file:
+  - In config/ change config.json to a config.js file.
+  - In models/index.js make sure to change config.json to a config.js as well.
 
 ### 4. Setup DB structure:
 
@@ -85,12 +87,6 @@ PORT=3001
 npx sequelize-cli db:create
 npx sequelize-cli db:migrate
 ```
-
-- Note: This project uses a custom src/ directory layout managed by the .sequelizerc file
-
-1. Update the Sequelize config file:
-   1. Change config.json to a config.js file.
-   2. In models/index.js make sure to change config.json to a config.js as well.
 
 ---
 
