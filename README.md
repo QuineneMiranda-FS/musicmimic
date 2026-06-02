@@ -29,7 +29,7 @@ Application built for Full Sail University WDV339 Web Development Course.
 Before setting up the project locally, ensure you have the following software installed:
 
 - **Node.js** (v18.0.0 or higher recommended)
-- **npm** (Comes pre-packaged with Node.js)
+- **npm** (Pre-packaged with Node.js)
 - **MySQL Server** (Ensure the system service is active)
 
 ---
