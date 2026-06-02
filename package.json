@@ -1,9 +1,11 @@
 {
   "name": "musicmimic",
   "version": "1.0.0",
-  "description": "A a music search app utilizing Spotify's REST Web API.",
-  "main": "index.js",
+  "description": "A music search app utilizing Spotify's REST Web API.",
+  "main": "src/server.js",
   "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -18,9 +20,14 @@
   },
   "homepage": "https://github.com/QuineneMiranda-FS/musicmimic#readme",
   "dependencies": {
+    "dotenv": "^16.4.5",
+    "ejs": "^6.0.1",
     "express": "^5.2.1",
     "mysql2": "^3.22.4",
-    "sequelize": "^6.37.8",
+    "sequelize": "^6.37.8"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14",
     "sequelize-cli": "^6.6.5"
   }
 }

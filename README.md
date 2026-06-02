@@ -24,39 +24,81 @@ Application built for Full Sail University WDV339 Web Development Course.
 
 ---
 
+## Prerequisites
+
+Before setting up the project locally, ensure you have the following software installed:
+
+- **Node.js** (v18.0.0 or higher recommended)
+- **npm** (Comes pre-packaged with Node.js)
+- **MySQL Server** (Ensure the system service is active)
+
+---
+
 ## Getting Started
 
 <!--The Getting Started section of any README file normally contains all of the instructions for a developer to get a working version of your project up and running. -->
 
 Follow these simple steps to get a local copy up and running.
 
-### Prerequisites
-
-<!--This section of your README file should list out all of the software requirements your project needs to run (E.g browser version, NodeJS version, etc) -->
-
-These are the software or packages the user needs to install before running this project.
-
-- npm
-  ```sh
-  npm install npm@latest -g
-  ```
-
 ### Installation
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+### 1. Clone the repository and navigate into the project directory:
+
+```bash
+git clone <your-repository-url>
+cd <your-project-name>
+```
+
+### 2. Install dependencies:
+
+- express, sequelize, ejs, mysql2
+  ```bash
+  npm install express sequelize ejs mysql2
+  ```
+- sequelize-cli, nodemon
+  ```bash
+  npm install --save-dev sequelize-cli nodemon
+  ```
+
+### 3. Configure the Environment
+
+Create a `.env` file in the project's **root directory** and add your local configuration variables:
+
+```env
+# Database Settings
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=root
+DB_PASS=
+DB_NAME=<your-project-name>
+
+# Web Server Settings
+PORT=3001
+```
+
+- Note: PORT=3000 is for your Express web server, while DB_PORT=3001 is strictly for your MySQL database connection
+-
+
+### 4. Setup DB structure:
+
+```bash
+npx sequelize-cli db:create
+npx sequelize-cli db:migrate
+```
+
+- Note: This project uses a custom src/ directory layout managed by the .sequelizerc file
+
+1. Update the Sequelize config file:
+   1. Change config.json to a config.js file.
+   2. In models/index.js make sure to change config.json to a config.js as well.
 
 ---
 
 ## Links
 
 <!--This section of your README contains a list of important links such as local build URLs such as localhost:3000, staging links, etc.-->
+
+- **API Documentation:** [Spotify Web API Documentation](https://spotify.com)
 
 ## Contact
 
