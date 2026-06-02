@@ -27,11 +27,11 @@ app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 // View Routers (Handles rendering HTML/EJS pages)
-const viewRouters = require("./routers/views");
+const viewRouters = require("./routes/views");
 app.use("/", viewRouters);
 
 // JSON API Routers (Handles data requests, forms, or AJAX)
-const apiRouters = require("./routers/api");
+const apiRouters = require("./routes/api");
 app.use("/api", apiRouters);
 
 // Global Error Handler
