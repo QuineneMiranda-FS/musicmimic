@@ -11,8 +11,9 @@ router.get("/callback/spotify", async (req, res, next) => {
     if (!code)
       return res.status(400).json({ error: "No code provided from Spotify" });
 
+    //Spotify Account Token Gateway
     const tokenResponse = await axios.post(
-      "https://spotify.com",
+      "https://accounts.spotify.com/api/token",
       querystring.stringify({
         grant_type: "authorization_code",
         code: code,
@@ -35,11 +36,14 @@ router.get("/callback/spotify", async (req, res, next) => {
 
     const spotifyAccessToken = tokenResponse.data.access_token;
 
-    const profileResponse = await axios.get("https://spotify.com", {
+    //Spotify Web API user profile endpoint
+    const profileResponse = await axios.get("https://api.spotify.com/v1/me", {
       headers: { Authorization: `Bearer ${spotifyAccessToken}` },
     });
 
-    // Sync with Database via Sequelize
+    // Debug
+    console.log("Spotify Profile Data Object:", profileResponse.data);
+
     const [user] = await User.findOrCreate({
       where: { spotifyId: profileResponse.data.id },
       defaults: {
@@ -54,7 +58,7 @@ router.get("/callback/spotify", async (req, res, next) => {
     });
 
     // Send token back to frontend
-    res.json({ token: appToken });
+    res.redirect(`http://127.0.0.1:3001/?token=${appToken}`);
   } catch (error) {
     // Passes errors to errorHandler middleware
     next(error);

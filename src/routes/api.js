@@ -58,30 +58,53 @@ router.get("/search", authenticateJWT, async (req, res, next) => {
 
     // Call Spotify Track Search API with the server token
     const searchResponse = await axios.get("https://spotify.com", {
-      headers: {
-        Authorization: `Bearer ${spotifyServerToken}`,
-      },
+      headers: { Authorization: `Bearer ${spotifyServerToken}` },
       params: {
         q: query,
-        type: "track",
+        type: "track,artist,album", // FIXED: Telling Spotify to pull all data segments
         limit: 10,
       },
     });
 
-    // Clean up the response so sends only what frontend needs
-    const tracks = searchResponse.data.tracks.items.map((track) => ({
-      id: track.id,
-      name: track.name,
-      artist: track.artists.map((a) => a.name).join(", "),
-      album: track.album.name,
-      image:
-        track.album.images && track.album.images[0]
-          ? track.album.images[0].url
-          : null,
-      previewUrl: track.preview_url,
-    }));
+    // Songs aka tracks
+    const tracks =
+      searchResponse.data.tracks?.items.map((track) => ({
+        id: track.id,
+        name: track.name,
+        artist: track.artists.map((a) => a.name).join(", "),
+        album: track.album.name,
+        image:
+          track.album.images && track.album.images[0]
+            ? track.album.images[0].url
+            : null,
+      })) || [];
 
-    res.json({ success: true, results: tracks });
+    // Artists
+    const artists =
+      searchResponse.data.artists?.items.map((artist) => ({
+        id: artist.id,
+        name: artist.name,
+        image: artist.images && artist.images[0] ? artist.images[0].url : null,
+        genres: artist.genres, // Array of string genres
+      })) || [];
+
+    // Albums
+    const albums =
+      searchResponse.data.albums?.items.map((album) => ({
+        id: album.id,
+        name: album.name,
+        artist: album.artists.map((a) => a.name).join(", "),
+        image: album.images && album.images[0] ? album.images[0].url : null,
+      })) || [];
+
+    res.json({
+      success: true,
+      results: {
+        tracks: tracks,
+        artists: artists,
+        albums: albums,
+      },
+    });
   } catch (error) {
     // Passes errors to errorHandler middleware
     next(error);

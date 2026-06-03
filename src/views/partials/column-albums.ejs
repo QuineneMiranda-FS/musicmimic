@@ -1,24 +1,10 @@
 <div class="column-section">
   <div class="column-header-row">
     <h2>Albums</h2>
-    <span class="badge"><%= locals.albums ? albums.length : 0 %></span>
+    <span id="albums-count-badge" class="badge">0</span>
   </div>
-  <div class="results-list">
-    <% if (locals.albums && albums.length > 0) { %>
-      <% albums.forEach(album => { %>
-        <div class="result-item">
-          <img src="<%= (album.images && album.images[0]) ? album.images[0].url : '/placeholder-album.png' %>" class="result-img" alt="">
-          <div class="result-meta">
-            <span class="result-title"><%= album.name %></span>
-            <span class="result-subtext">
-              <%= (album.artists && album.artists[0]) ? album.artists[0].name : 'Unknown Artist' %> 
-              <%= album.release_date ? '• ' + album.release_date.split('-')[0] : '' %>
-            </span>
-          </div>
-        </div>
-      <% }) %>
-    <% } else { %>
-      <p class="no-results">No albums found.</p>
-    <% } %>
+
+  <div id="albums-list-container" class="results-list">
+    <p class="no-results">No albums found.</p>
   </div>
 </div>

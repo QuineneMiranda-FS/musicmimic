@@ -1,36 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Music Mimic - Home</title>
-  <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Music Mimic - Home</title>
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
+    <%- include('partials/header') %>
 
-  <%- include('partials/header') %>
-
-  <div class="grid-container" style="justify-content: center; max-width: 600px;">
-    
-    <% if (!locals.isLoggedIn) { %>
+    <div
+      class="grid-container"
+      style="justify-content: center; max-width: 600px"
+    >
       <!-- STATE A: Logged Out (Show Login Card) -->
-      <div class="column-section text-center">
-
-        <p style="color: #8c8c8c; margin-bottom: 24px;">Connect your account to search Spotify artists, tracks, and albums.</p>
-        <a href="/auth/spotify" class="spotify-btn">Login with Spotify</a>
+      <div id="logged-out-card" class="column-section text-center hidden">
+        <p style="color: #8c8c8c; margin-bottom: 24px">
+          Connect your account to search Spotify artists, tracks, and albums.
+        </p>
+        <a href="/api/login/spotify" class="spotify-btn">Login with Spotify</a>
       </div>
-    <% } else { %>
+
       <!-- STATE B: Logged In (Show Search Prompt Card) -->
-      <div class="column-section text-center">
+      <div id="logged-in-card" class="column-section text-center hidden">
         <div class="column-header-row">
-          <h2 style="width: 100%; text-align: center;">Ready to Explore?</h2>
+          <h2 style="width: 100%; text-align: center">Ready to Explore?</h2>
         </div>
-        <div class="success-icon" style="color: var(--ant-success); font-size: 48px; margin-bottom: 12px;">✓</div>
-        <p style="color: #8c8c8c;">You are successfully logged in!</p>
-        <p>Use the **search bar in the header** above to find your favorite music.</p>
+        <div
+          class="success-icon"
+          style="
+            color: var(--ant-success);
+            font-size: 48px;
+            margin-bottom: 12px;
+          "
+        >
+          ✓
+        </div>
+        <p style="color: #8c8c8c">You are successfully logged in!</p>
+        <p>
+          Use the <strong>search bar in the header</strong> above to find your
+          favorite music.
+        </p>
       </div>
-    <% } %>
+    </div>
 
-  </div>
-
-</body>
+    <!-- Scripts -->
+    <script src="/js/script.js"></script>
+  </body>
 </html>

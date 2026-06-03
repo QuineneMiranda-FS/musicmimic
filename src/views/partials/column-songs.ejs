@@ -1,21 +1,10 @@
 <div class="column-section">
   <div class="column-header-row">
     <h2>Songs</h2>
-    <span class="badge"><%= locals.songs ? songs.length : 0 %></span>
+    <span id="songs-count-badge" class="badge">0</span>
   </div>
-  <div class="results-list">
-    <% if (locals.songs && songs.length > 0) { %>
-      <% songs.forEach(song => { %>
-        <div class="result-item">
-          <img src="<%= (song.album && song.album.images && song.album.images[0]) ? song.album.images[0].url : '/placeholder-track.png' %>" class="result-img" alt="">
-          <div class="result-meta">
-            <span class="result-title"><%= song.name %></span>
-            <span class="result-subtext"><%= song.artists.map(a => a.name).join(', ') %></span>
-          </div>
-        </div>
-      <% }) %>
-    <% } else { %>
-      <p class="no-results">No songs found.</p>
-    <% } %>
+
+  <div id="songs-list-container" class="results-list">
+    <p class="no-results">No songs found. Use the search bar to explore.</p>
   </div>
 </div>
