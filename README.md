@@ -73,7 +73,7 @@ JWT_EXPIRES_IN=1h
 # Spotify Developer API Credentials
 SPOTIFY_CLIENT_ID=your_spotify_client_id_here
 SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
-SPOTIFY_REDIRECT_URI=http://localhost:3000/api/auth/spotify/callback
+SPOTIFY_REDIRECT_URI=http://127.0.0.1:3000/api/auth/spotify/callback
 ```
 
 _Note: This project uses a custom `src/` layout managed by a `.sequelizerc` file inside the backend directory. Ensure your `config/config.js` and `models/index.js` point to these environment variables._
@@ -102,10 +102,10 @@ Create a `.env` file inside the `frontend/` directory:
 
 ```env
 # Frontend Environment Configuration
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=http://127.0.0.1:3000
 ```
 
-_Note: Vite requires frontend environment variables to be prefixed with `VITE_` to protect your application from leaking backend secrets to the browser client._
+_Note: Vite requires frontend environment variables to be prefixed with `VITE_` to protect your application from leaking backend secrets to the browser client.\_
 
 ---
 
@@ -120,7 +120,7 @@ cd backend
 npm run dev
 ```
 
-\*The backend REST API service will listen on: **`http://localhost:3000`\***
+\*The backend REST API service will listen on: **`http://127.0.0.1:3000`\***
 
 ### Start Frontend Application Server
 
@@ -129,9 +129,9 @@ cd frontend
 npm run dev
 ```
 
-\*The Vite engine will be locally on: **`http://localhost:5173`\***
+\*The Vite engine will be locally on: **`http://127.0.0.1:5173`\***
 
-Open your web browser and navigate directly to the Vite frontend URL (**`http://localhost:5173`**) to launch.
+Open your web browser and navigate directly to the Vite frontend URL (**`http://127.0.0.1:5173`**) to launch.
 
 ---
 
