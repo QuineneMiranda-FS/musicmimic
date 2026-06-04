@@ -111,7 +111,7 @@ _Note: Vite requires frontend environment variables to be prefixed with `VITE_` 
 
 ## Running the Application
 
-Because this application features a strictly decoupled frontend and backend, you must run both servers concurrently using separate terminal windows. Note for self: debating concurrently...research that more.
+Because this application features a strictly decoupled frontend and backend, you must run both servers using separate terminal windows. Note for self: debating concurrently...research that more.
 
 ### Start Backend API Server
 
