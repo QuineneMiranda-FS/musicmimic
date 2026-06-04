@@ -13,38 +13,43 @@ const router = createRouter({
     {
       path: "/search",
       name: "search",
-      // Loads view only when the user visits it
       component: () => import("../views/SearchView.vue"),
       meta: { requiresAuth: true },
     },
   ],
 });
 
-// Nav Guard Intercept
-router.beforeEach((to, from, next) => {
+router.beforeEach((to) => {
   const token = localStorage.getItem("app_jwt");
 
-  // Check for new token
+  // Chk for token
   const urlParams = new URLSearchParams(window.location.search);
   const tokenFromUrl = urlParams.get("token");
 
   if (tokenFromUrl) {
     localStorage.setItem("app_jwt", tokenFromUrl);
-    // Clear token fm address bar
-    return next({ path: "/search", replace: true });
+
+    // Clear token
+    const cleanUrl =
+      window.location.protocol +
+      "//" +
+      window.location.host +
+      window.location.pathname;
+    window.history.replaceState({ path: cleanUrl }, "", cleanUrl);
+
+    return { path: "/search", replace: true };
   }
 
-  // If no token, redirect to login
   if (to.meta.requiresAuth && !token) {
-    return next({ name: "login" });
+    return { name: "login" };
   }
 
-  // Skip login for users already authenticated
+  // Auth Users Skip Login
   if (to.name === "login" && token) {
-    return next({ name: "search" });
+    return { path: "/search" };
   }
 
-  next();
+  return true;
 });
 
 export default router;
