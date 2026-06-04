@@ -41,12 +41,10 @@ router.get("/search", authenticateJWT, async (req, res, next) => {
         .json({ error: "Spotify credentials missing. Please log in again." });
     }
     if (!dbUser.spotifyRefreshToken) {
-      return res
-        .status(401)
-        .json({
-          error:
-            "Spotify session cannot be refreshed automatically. Please log out and log back in to renew your permissions.",
-        });
+      return res.status(401).json({
+        error:
+          "Spotify session cannot be refreshed automatically. Please log out and log back in to renew your permissions.",
+      });
     }
     const spotifyClient = axios.create({
       baseURL: "https://api.spotify.com/v1",
@@ -99,13 +97,14 @@ router.get("/search", authenticateJWT, async (req, res, next) => {
     const spotifyUrl = `/search?q=${encodeURIComponent(query)}&type=track,artist,album&limit=10`;
     const searchResponse = await spotifyClient.get(spotifyUrl);
 
-    // Results
+    // Results (with external Spotify URLs)
     const tracks =
       searchResponse.data.tracks?.items.map((track) => ({
         id: track.id,
         name: track.name,
         artist: track.artists.map((a) => a.name).join(", "),
         album: track.album.name,
+        spotifyUrl: track.external_urls?.spotify || null,
         image:
           track.album.images && track.album.images.length > 0
             ? track.album.images[0].url
@@ -116,6 +115,7 @@ router.get("/search", authenticateJWT, async (req, res, next) => {
       searchResponse.data.artists?.items.map((artist) => ({
         id: artist.id,
         name: artist.name,
+        spotifyUrl: artist.external_urls?.spotify || null,
         image:
           artist.images && artist.images.length > 0
             ? artist.images[0].url
@@ -128,6 +128,7 @@ router.get("/search", authenticateJWT, async (req, res, next) => {
         id: album.id,
         name: album.name,
         artist: album.artists.map((a) => a.name).join(", "),
+        spotifyUrl: album.external_urls?.spotify || null,
         image:
           album.images && album.images.length > 0 ? album.images[0].url : null,
       })) || [];

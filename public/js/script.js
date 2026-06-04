@@ -112,13 +112,15 @@ function renderSongs(tracks) {
   container.innerHTML = tracks
     .map(
       (song) => `
-    <div class="result-item">
-      <img src="${song.image ? song.image : "/placeholder-track.png"}" class="result-img" alt="">
-      <div class="result-meta">
-        <span class="result-title">${escapeHTML(song.name)}</span>
-        <span class="result-subtext">${escapeHTML(song.artist)}</span>
+    <a href="${song.spotifyUrl || "#"}" target="_blank" rel="noopener noreferrer" class="result-item-link">
+      <div class="result-item">
+        <img src="${song.image ? song.image : "/placeholder-track.png"}" class="result-img" alt="">
+        <div class="result-meta">
+          <span class="result-title">${escapeHTML(song.name)}</span>
+          <span class="result-subtext">${escapeHTML(song.artist)}</span>
+        </div>
       </div>
-    </div>
+    </a>
   `,
     )
     .join("");
@@ -134,6 +136,7 @@ function escapeHTML(str) {
       ] || tag,
   );
 }
+
 function renderArtists(artists) {
   const container = document.getElementById("artists-list-container");
   const badge = document.getElementById("artists-count-badge");
@@ -148,13 +151,15 @@ function renderArtists(artists) {
   container.innerHTML = artists
     .map(
       (artist) => `
-    <div class="result-item">
-      <img src="${artist.image ? artist.image : "/placeholder-artist.png"}" class="result-img" alt="">
-      <div class="result-meta">
-        <span class="result-title">${escapeHTML(artist.name)}</span>
-        <span class="result-subtext">${artist.genres ? escapeHTML(artist.genres.join(", ")) : "Artist"}</span>
+    <a href="${artist.spotifyUrl || "#"}" target="_blank" rel="noopener noreferrer" class="result-item-link">
+      <div class="result-item">
+        <img src="${artist.image ? artist.image : "/placeholder-artist.png"}" class="result-img" alt="">
+        <div class="result-meta">
+          <span class="result-title">${escapeHTML(artist.name)}</span>
+          <span class="result-subtext">${artist.genres ? escapeHTML(artist.genres.join(", ")) : "Artist"}</span>
+        </div>
       </div>
-    </div>
+    </a>
   `,
     )
     .join("");
@@ -174,13 +179,15 @@ function renderAlbums(albums) {
   container.innerHTML = albums
     .map(
       (album) => `
-    <div class="result-item">
-      <img src="${album.image ? album.image : "/placeholder-album.png"}" class="result-img" alt="">
-      <div class="result-meta">
-        <span class="result-title">${escapeHTML(album.name)}</span>
-        <span class="result-subtext">${escapeHTML(album.artist)}</span>
+    <a href="${album.spotifyUrl || "#"}" target="_blank" rel="noopener noreferrer" class="result-item-link">
+      <div class="result-item">
+        <img src="${album.image ? album.image : "/placeholder-album.png"}" class="result-img" alt="">
+        <div class="result-meta">
+          <span class="result-title">${escapeHTML(album.name)}</span>
+          <span class="result-subtext">${escapeHTML(album.artist)}</span>
+        </div>
       </div>
-    </div>
+    </a>
   `,
     )
     .join("");

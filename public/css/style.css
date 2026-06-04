@@ -170,6 +170,12 @@ body {
   border-radius: 50%; /* Rounded profiles for artists */
 }
 
+.result-item-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
 /* Metadata  */
 .result-meta {
   display: flex;
