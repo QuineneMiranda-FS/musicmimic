@@ -4,6 +4,7 @@ const PORT = process.env.PORT || 3001;
 
 db.sequelize
   .sync({ alter: true })
+  // await sequelize.sync({ force: false });
   .then(() => {
     console.log("Database tables synced successfully.");
 

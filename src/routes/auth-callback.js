@@ -49,8 +49,15 @@ router.get("/callback/spotify", async (req, res, next) => {
       defaults: {
         email: profileResponse.data.email,
         displayName: profileResponse.data.display_name,
+        spotifyAccessToken: spotifyAccessToken, // Save token
       },
     });
+
+    // If user exists, update access token to newest
+    if (!user._strong_hint_was_created) {
+      user.spotifyAccessToken = spotifyAccessToken;
+      await user.save();
+    }
 
     // Generate internal Application JWT
     const appToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
