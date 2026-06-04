@@ -14,5 +14,8 @@ module.exports = (sequelize, DataTypes) => {
     spotifyAccessToken: {
       type: DataTypes.TEXT,
     },
+    spotifyRefreshToken: {
+      type: DataTypes.TEXT,
+    },
   });
 };

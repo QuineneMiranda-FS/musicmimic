@@ -2,7 +2,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // Callback tokens intercept
   const urlParams = new URLSearchParams(window.location.search);
   const tokenFromUrl = urlParams.get("token");
-
   if (tokenFromUrl) {
     localStorage.setItem("app_jwt", tokenFromUrl);
     window.history.replaceState({}, document.title, window.location.pathname);
@@ -12,29 +11,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Visibility
   const headerSearchForm = document.getElementById("header-search-form");
+  const headerLogoutBtn = document.getElementById("header-logout-btn");
   const loggedOutCard = document.getElementById("logged-out-card");
   const loggedInCard = document.getElementById("logged-in-card");
 
   if (jwt) {
     headerSearchForm?.classList.remove("hidden");
+    headerLogoutBtn?.classList.remove("hidden");
     loggedInCard?.classList.remove("hidden");
     loggedOutCard?.classList.add("hidden");
   } else {
     headerSearchForm?.classList.add("hidden");
+    headerLogoutBtn?.classList.add("hidden");
     loggedOutCard?.classList.remove("hidden");
     loggedInCard?.classList.add("hidden");
   }
 
-  // From Submission Handler
+  // Logout
+  headerLogoutBtn?.addEventListener("click", () => {
+    localStorage.removeItem("app_jwt");
+    window.location.href = "/";
+  });
+
+  // From Submit Handler
   headerSearchForm?.addEventListener("submit", (event) => {
     event.preventDefault();
-
     const searchInput = document.getElementById("header-search-input");
     const query = searchInput?.value.trim();
-
     if (!query) return;
 
-    // Results based on search
+    // Results
     window.location.href = `/results?q=${encodeURIComponent(query)}`;
   });
 
@@ -47,7 +53,6 @@ document.addEventListener("DOMContentLoaded", () => {
 async function executeMusicSearch(token) {
   const urlParams = new URLSearchParams(window.location.search);
   const searchQuery = urlParams.get("q");
-
   if (!searchQuery) return;
 
   const songsContainer = document.getElementById("songs-list-container");
@@ -67,6 +72,14 @@ async function executeMusicSearch(token) {
         },
       },
     );
+
+    // Auto logout if token expired
+    if (response.status === 401) {
+      localStorage.removeItem("app_jwt");
+      alert("Your session has expired. Please log in again.");
+      window.location.href = "/";
+      return;
+    }
 
     const data = await response.json();
     if (!response.ok || data.status === "error") throw new Error(data.message);
@@ -111,7 +124,7 @@ function renderSongs(tracks) {
     .join("");
 }
 
-// **Fix Helper for XSS issues when inserting string variables into HTML
+// **Fix** Ugh Helper for XSS issues when inserting string variables into HTML
 function escapeHTML(str) {
   return str.replace(
     /[&<>'"]/g,

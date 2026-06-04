@@ -14,7 +14,7 @@ const authenticateJWT = (req, res, next) => {
     }
   }
 
-  // If no token or invalid token, reject access
+  // If no token/invalid token, reject access
   return res.status(401).json({
     status: "error",
     message: "Unauthorized access. Missing or invalid token.",

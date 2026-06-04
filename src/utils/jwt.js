@@ -19,7 +19,7 @@ const verifyToken = (token) => {
   try {
     return jwt.verify(token, JWT_SECRET);
   } catch (error) {
-    return null; // Returns null if token is expired or altered
+    return null; // Returns null if token is expired
   }
 };
 

@@ -22,7 +22,7 @@ router.get("/callback/spotify", async (req, res, next) => {
       {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          // Spotify wants authorization credentials passed via Auth header
+          // **Note: Spotify wants authorization credentials passed via Auth header
           Authorization:
             "Basic " +
             Buffer.from(
@@ -35,6 +35,7 @@ router.get("/callback/spotify", async (req, res, next) => {
     );
 
     const spotifyAccessToken = tokenResponse.data.access_token;
+    const spotifyRefreshToken = tokenResponse.data.refresh_token;
 
     //Spotify Web API user profile endpoint
     const profileResponse = await axios.get("https://api.spotify.com/v1/me", {
@@ -44,22 +45,25 @@ router.get("/callback/spotify", async (req, res, next) => {
     // Debug
     console.log("Spotify Profile Data Object:", profileResponse.data);
 
-    const [user] = await User.findOrCreate({
+    const [user, created] = await User.findOrCreate({
       where: { spotifyId: profileResponse.data.id },
       defaults: {
         email: profileResponse.data.email,
         displayName: profileResponse.data.display_name,
-        spotifyAccessToken: spotifyAccessToken, // Save token
+        spotifyAccessToken: spotifyAccessToken,
+        spotifyRefreshToken: spotifyRefreshToken,
       },
     });
 
-    // If user exists, update access token to newest
-    if (!user._strong_hint_was_created) {
+    // If user exists update to newest token
+    if (!created) {
       user.spotifyAccessToken = spotifyAccessToken;
+      if (spotifyRefreshToken) {
+        user.spotifyRefreshToken = spotifyRefreshToken;
+      }
       await user.save();
     }
 
-    // Generate internal Application JWT
     const appToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
       expiresIn: "24h",
     });
