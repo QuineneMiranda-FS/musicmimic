@@ -3,7 +3,7 @@ const router = express.Router();
 const axios = require("axios");
 
 // Import the Sequelize User model
-const { User } = require("../models");
+const { User } = require("../../../../backend/models");
 
 // Import auth sub-routers
 const authModule = require("./auth");
@@ -13,7 +13,7 @@ const { refreshSpotifyToken } = authModule;
 const authCallbackRoutes = require("./auth-callback");
 
 // Import custom JWT middleware
-const { authenticateJWT } = require("../middleware/auth");
+const { authenticateJWT } = require("../xmiddleware/auth");
 
 // Test API Endpoint
 router.get("/status", (req, res) => {

@@ -3,7 +3,7 @@ const router = express.Router();
 const axios = require("axios");
 const jwt = require("jsonwebtoken");
 const querystring = require("querystring");
-const { User } = require("../models");
+const { User } = require("../../../../backend/models");
 
 router.get("/callback/spotify", async (req, res, next) => {
   try {

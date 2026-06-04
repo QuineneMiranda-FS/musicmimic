@@ -8,7 +8,7 @@ const express = require("express");
 const path = require("path");
 
 // Load global error handler
-const { errorHandler } = require("./middleware/errorHandler");
+const { errorHandler } = require("./xmiddleware/errorHandler");
 
 // Create a new Express instance called "app"
 const app = express();
@@ -27,11 +27,11 @@ app.set("views", path.join(__dirname, "views"));
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 // View Routers (Handles rendering HTML/EJS pages)
-const viewRouters = require("./routes/views");
+const viewRouters = require("./xroutes/views");
 app.use("/", viewRouters);
 
 // JSON API Routers (Handles data requests, forms, or AJAX)
-const apiRouters = require("./routes/api");
+const apiRouters = require("./xroutes/api");
 app.use("/api", apiRouters);
 
 // Global Error Handler

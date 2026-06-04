@@ -1,4 +1,4 @@
-const app = require("./app");
+const app = require("../frontend/public/src/app");
 const db = require("./models");
 const PORT = process.env.PORT || 3001;
 
