@@ -40,7 +40,8 @@ out/
 npm-debug.log*
 yarn-debug.log*
 .tmp/
-*.txt
+# Ignore personal notes
+notes/
 
 # ---------------------------------------------------------------------
 # Secrets and API Keys 

@@ -2,25 +2,21 @@
 
 ## Spotify UI
 
-A a music search app utilizing Spotify's REST Web API.
-
-<!-- Comments -->
+A music search app utilizing Spotify's REST Web API.
 
 ## Project Overview
-
-<!-- This section of your README should contain the description of your project, features, and functionality. -->
 
 Application built for Full Sail University WDV339 Web Development Course.
 
 ### App Requirements
 
 - **UI Design**: The UX/UI of the application utilizing design created in week 1.
-- **Login Screen**: Screen displayed if no JWT is stored in the database to use the Spotify API.
-- **Search Screen**: Screen user is taken to if a JWT exists and isn't expired then user doesn't need to login, and is immediately taken to the search page.
+- **Login Screen**: Screen displayed if no JWT is stored to use the Spotify API.
+- **Search Screen**: Screen user is taken to if a JWT exists and isn't expired, bypassing the login page directly to the search page.
 - **No Results Message**: A "no results" message if no search is performed, or API call returned with no results.
 - **Thumbnails to Links**: Each result thumbnail links out to a Spotify web player link.
-- **Decoupled**: Frontend application is decoupled from backend application then handles JWTs.
-- **Secrets**: All application secret credentials are not be viewable in the repository.
+- **Decoupled**: Frontend application (Vite + Vue) is strictly decoupled from the backend application (Express + Sequelize) that handles JWTs.
+- **Secrets**: All application secret credentials are not viewable in the repository.
 
 ---
 
@@ -29,19 +25,14 @@ Application built for Full Sail University WDV339 Web Development Course.
 Before setting up the project locally, ensure you have the following software installed:
 
 - **Node.js** (v18.0.0 or higher recommended)
-- **npm** (with Node.js)
-- **Axios**
-- **MySQL Server** (Ensure the system service is active)
+- **npm** (comes bundled with Node.js)
+- **MySQL Server** (Ensure the system service is running active on port 3306)
 
 ---
 
 ## Getting Started
 
-<!--The Getting Started section of any README file normally contains all of the instructions for a developer to get a working version of your project up and running. -->
-
-Follow these simple steps to get a local copy up and running.
-
-### Installation
+Follow these steps to set up both the backend API and frontend application locally.
 
 ### 1. Clone the repository and navigate into the project directory:
 
@@ -50,81 +41,104 @@ git clone <your-repository-url>
 cd <your-project-name>
 ```
 
-### 2. Install dependencies:
+### 2. Backend Setup (Express & Sequelize API)
 
-- express, sequelize, ejs, mysql2
-  ```bash
-  npm install express sequelize ejs mysql2
-  ```
-- sequelize-cli, nodemon
-  ```bash
-  npm install --save-dev sequelize-cli nodemon
-  ```
+Navigate to the backend folder, install dependencies, and configure environment secrets.
 
-### 3. Configure the Environment
+```bash
+cd backend
+npm install express sequelize mysql2 jsonwebtoken axios dotenv
+npm install --save-dev sequelize-cli nodemon
+```
 
-Create a `.env` file in the project's **root directory** and add your local configuration variables:
+#### Configure Backend Environment
+
+Create a `.env` file inside the `backend/` directory:
 
 ```env
+# Server Configuration
+PORT=3000
+
 # Database Settings
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_USER=root
 DB_PASS=
-DB_NAME=<your-project-name>
+DB_NAME=music_mimic_db
 
-# Web Server Settings
-PORT=3001
+# JWT Security Settings
+JWT_SECRET=your_random_secret_string_here
+JWT_EXPIRES_IN=1h
+
+# Spotify Developer API Credentials
+SPOTIFY_CLIENT_ID=your_spotify_client_id_here
+SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
+SPOTIFY_REDIRECT_URI=http://localhost:3000/api/auth/spotify/callback
 ```
 
-- Note: PORT=3000 is for your Express web server, while DB_PORT=3001 is strictly for your MySQL database connection
-- Note: This project uses a custom src/ directory layout managed by the .sequelizerc file. Make sure you update the Sequelize config file:
-  - In config/ change config.json to a config.js file.
-  - In models/index.js make sure to change config.json to a config.js as well.
+_Note: This project uses a custom `src/` layout managed by a `.sequelizerc` file inside the backend directory. Ensure your `config/config.js` and `models/index.js` point to these environment variables._
 
-### 4. Setup DB structure:
+#### Initialize Database Structure
+
+Run the following commands while still inside the `backend/` directory:
 
 ```bash
 npx sequelize-cli db:create
 npx sequelize-cli db:migrate
 ```
 
-### 5. Setup JWT User Authentication/Spotify API integration
+### 3. Frontend Setup (Vite + Vue)
+
+Open a new terminal window, navigate to the frontend folder, and install your build dependencies.
 
 ```bash
-npm install jsonwebtoken
+cd frontend
+npm install
 ```
+
+#### Configure Frontend Environment
+
+Create a `.env` file inside the `frontend/` directory:
 
 ```env
-# JWT Security Settings
-JWT_SECRET=your_random_secret_string_here
-JWT_EXPIRES_IN=1h
+# Frontend Environment Configuration
+VITE_API_URL=http://localhost:3000
 ```
 
-### 6. Start the Application
+_Note: Vite requires frontend environment variables to be prefixed with `VITE_` to protect your application from leaking backend secrets to the browser client._
 
-- **Development Mode:**
+---
 
-  ```bash
-  npm run dev
-  ```
+## Running the Application
 
-- **Production Mode:**
+Because this application features a strictly decoupled frontend and backend, you must run both servers concurrently using separate terminal windows. Note for self: debating concurrently...research that more.
 
-  ```bash
-  npm start
-  ```
+### Start Backend API Server
 
-Once started, open your web browser and navigate to: **`http://localhost:3001`**
+```bash
+cd backend
+npm run dev
+```
+
+\*The backend REST API service will listen on: **`http://localhost:3000`\***
+
+### Start Frontend Application Server
+
+```bash
+cd frontend
+npm run dev
+```
+
+\*The Vite engine will be locally on: **`http://localhost:5173`\***
+
+Open your web browser and navigate directly to the Vite frontend URL (**`http://localhost:5173`**) to launch.
 
 ---
 
 ## Links
 
-<!--This section of your README contains a list of important links such as local build URLs such as localhost:3000, staging links, etc.-->
-
-- **API Documentation:** [Spotify Web API Documentation](https://spotify.com)
-- **Spotify Design Documentation:** [Spotify Design Documentation] (https://developer.spotify.com/documentation/design)
+- **API Documentation:** [Spotify Web API Documentation](https://developer.spotify.com)
+- **Spotify Design Documentation:** [Spotify Design Guidelines](https://developer.spotify.com/documentation/design)
 
 ## Contact
 
