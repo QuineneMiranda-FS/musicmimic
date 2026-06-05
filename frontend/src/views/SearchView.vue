@@ -10,7 +10,7 @@
       <input
         v-model="searchQuery"
         type="text"
-        placeholder="Search tracks, artists, or albums..."
+        placeholder="Search tracks, artists, or albums by keyword..."
         @keyup.enter="executeSearch"
       />
       <button @click="executeSearch" class="spotify-btn">Search</button>
