@@ -19,10 +19,7 @@
     <main class="results-area">
       <!-- CONDITION A: No search yet msg -->
       <div v-if="!hasSearched" class="status-message">
-        <p>
-          Your Spotify Token is active. Type above to start your music
-          discovery!
-        </p>
+        <p>Your Spotify is connected! Type above to search music.</p>
       </div>
 
       <!-- CONDITION B: If return empty, show No Results msg -->
