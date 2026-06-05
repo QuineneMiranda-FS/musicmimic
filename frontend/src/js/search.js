@@ -54,8 +54,30 @@ export function useSearchLogic() {
 
   // Clear global tokens/send user back to login
   function logout() {
+    // Clear local JWT
     localStorage.removeItem("app_jwt");
-    router.push("/");
+
+    // Pop Up Spotify Cookie clearing
+    const spotifyLogoutWindow = window.open(
+      "https://spotify.com",
+      "_blank",
+      "width=500,height=400,top=100,left=100",
+    );
+
+    // Close Pop Up
+    setTimeout(() => {
+      if (spotifyLogoutWindow) {
+        spotifyLogoutWindow.close();
+      }
+
+      // Reset local state
+      hasSearched.value = false;
+      results.value = { tracks: [], artists: [], albums: [] };
+      searchQuery.value = "";
+
+      // Force to LoginView screen
+      router.push("/");
+    }, 2000);
   }
 
   return {

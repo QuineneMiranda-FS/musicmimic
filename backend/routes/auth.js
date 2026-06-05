@@ -19,7 +19,7 @@ router.get("/login/spotify", (req, res) => {
       client_id: clientId,
       scope: scopes,
       redirect_uri: redirectUri,
-      show_dialog: false,
+      show_dialog: true,
     });
 
   console.log("Redirecting browser to official URL:", spotifyAuthUrl);
