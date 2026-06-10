@@ -20,6 +20,7 @@ const loadPageData = async () => {
   if (!trackId.value) return;
   isLoadingRecs.value = true;
 
+  // Fetch Lyrics and Mood
   try {
     const analyzeRes = await axios.post(
       "http://localhost:3000/api/tracks/analyze",
@@ -31,7 +32,16 @@ const loadPageData = async () => {
     );
     lyrics.value = analyzeRes.data.lyricsText;
 
-    // Pull recommendations from Spotify
+    // Update page if backend dif mood than query
+    if (analyzeRes.data.mood) mood.value = analyzeRes.data.mood;
+    if (analyzeRes.data.emoticon) emoticon.value = analyzeRes.data.emoticon;
+  } catch (err) {
+    console.error("Genius Scraping Error:", err);
+    lyrics.value = "Failed to sync song profile elements.";
+  }
+
+  // Fetch Spotify Recommendations
+  try {
     const token = localStorage.getItem("app_jwt");
     const recsRes = await axios.get(
       "http://localhost:3000/api/tracks/recommendations",
@@ -42,8 +52,9 @@ const loadPageData = async () => {
     );
     recommendations.value = recsRes.data;
   } catch (err) {
-    console.error("Subpage load error:", err);
-    lyrics.value = "Failed to sync song profile elements.";
+    console.error("Spotify Recommendations Subpage Error:", err);
+    // Another Fallback -user still sees lyrics if Spotify is down/unauthorized
+    recommendations.value = [];
   } finally {
     isLoadingRecs.value = false;
   }
@@ -92,7 +103,7 @@ onMounted(loadPageData);
         </header>
 
         <section class="lyrics-card">
-          <h2>Genius Lyrics</h2>
+          <h2>Lyrics [From Genius]</h2>
           <p class="lyrics-body-text">
             {{ lyrics }}
           </p>

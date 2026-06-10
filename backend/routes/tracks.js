@@ -4,7 +4,6 @@ const axios = require("axios");
 const cheerio = require("cheerio");
 const { OpenAI } = require("openai");
 const { User } = require("../models");
-
 require("dotenv").config();
 
 const openai = new OpenAI({
@@ -20,30 +19,65 @@ const getUserIdFromReq = (req) => {
 // Live Fetch & Analyze
 router.post("/analyze", async (req, res) => {
   const { spotifyId, title, artist } = req.body;
-
   try {
     console.log(`[Genius] Scraping live lyrics for: ${title} - ${artist}`);
+
     const searchUrl = `https://api.genius.com/search?q=${encodeURIComponent(`${title} ${artist}`)}&access_token=${process.env.GENIUS_ACCESS_TOKEN}`;
     const geniusSearch = await axios.get(searchUrl);
-    const lyricPath = geniusSearch.data.response.hits[0]?.result?.path;
 
+    const lyricPath = geniusSearch.data.response.hits[0]?.result?.path;
     let lyricsText = "No lyrics found on Genius for this track.";
+
     if (lyricPath) {
-      const lyricPage = await axios.get(`https://genius.com${lyricPath}`);
+      const lyricPage = await axios.get(`https://genius.com${lyricPath}`, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        },
+      });
       const $ = cheerio.load(lyricPage.data);
       let scrapedLyrics = "";
 
-      // Genuis lyric nodes
-      $(
-        '[class^="Lyrics__Container"], .lyrics, [data-lyrics-container="true"]',
-      ).each((i, el) => {
-        scrapedLyrics +=
-          $(el)
-            .text()
-            .replace(/<br\s*\/?>/gi, "\n") + "\n";
-      });
+      $('[class^="Lyrics__Container"], [data-lyrics-container="true"]').each(
+        (i, el) => {
+          let htmlContent = $(el).html();
+          if (htmlContent) {
+            // Replace break tags w/ new lines
+            htmlContent = htmlContent.replace(/<br\s*\/?>/gi, "\n");
+            // Replace closing tags with new lines
+            htmlContent = htmlContent.replace(/<\/p>|<\/div>/gi, "\n");
+            // Load modified HTML into Cheerio to strip tags safely
+            const cleanText = cheerio.load(htmlContent).text();
+            scrapedLyrics += cleanText + "\n";
+          }
+        },
+      );
 
-      scrapedLyrics = scrapedLyrics.trim();
+      // Fallback fix for legacy Genius templates
+      if (!scrapedLyrics.trim()) {
+        $(".lyrics").each((i, el) => {
+          let htmlContent = $(el).html() || "";
+          htmlContent = htmlContent.replace(/<br\s*\/?>/gi, "\n");
+          scrapedLyrics += cheerio.load(htmlContent).text() + "\n";
+        });
+      }
+
+      // --- Don't show metadata ---
+      scrapedLyrics = scrapedLyrics.replace(
+        /^\d+\s+Contributors?[\s\S]*?(?=Lyrics)/gi,
+        "",
+      );
+      scrapedLyrics = scrapedLyrics.replace(/^.*?\bLyrics\b\s*/i, "");
+
+      scrapedLyrics = scrapedLyrics.replace(
+        /You might also like[\s\S]*\$/gi,
+        "",
+      );
+
+      scrapedLyrics = scrapedLyrics
+        .replace(/\n{3,}/g, "\n\n") // spacing fix
+        .trim();
+
       if (scrapedLyrics) {
         lyricsText = scrapedLyrics.substring(0, 1500);
       }
@@ -51,7 +85,6 @@ router.post("/analyze", async (req, res) => {
 
     // AI Inference
     const freeModels = ["llama3"];
-
     let label = null;
     let emoji = null;
 
@@ -64,7 +97,7 @@ router.post("/analyze", async (req, res) => {
             {
               role: "system",
               content:
-                "You analyze lyrics for emotional tone. Return a JSON object with keys 'mood' and 'emoticon'. Values must strictly be one pair from: [Energetic/⚡, Melancholic/🌧️, Angry/🔥, Chill/🌊, Romantic/💖].",
+                "You analyze lyrics for emotional tone. Return a JSON object with keys 'mood' and 'emoticon'. Values must strictly be one pair from: [Energetic/⚡, Melancholic/🌧, Angry/🔥, Chill/🌊, Romantic/💖].",
             },
             {
               role: "user",
@@ -80,7 +113,7 @@ router.post("/analyze", async (req, res) => {
           }
           const parsed = JSON.parse(cleanContent);
           label = parsed.mood;
-          emoji = parsed.emoticon;
+          emoji = parsed.emoticon ? decodeURIComponent(parsed.emoticon) : null;
           break;
         }
       } catch (err) {
@@ -92,7 +125,7 @@ router.post("/analyze", async (req, res) => {
     if (!label || !emoji) {
       const localMoodPool = [
         { moodLabel: "Energetic", emoji: "⚡" },
-        { moodLabel: "Melancholic", emoji: "🌧️" },
+        { moodLabel: "Melancholic", emoji: "🌧" },
         { moodLabel: "Angry", emoji: "🔥" },
         { moodLabel: "Chill", emoji: "🌊" },
         { moodLabel: "Romantic", emoji: "💖" },
@@ -135,19 +168,15 @@ router.get("/recommendations", async (req, res) => {
       `[Spotify] Fetching real live recommendations for track seed: ${excludeId}`,
     );
 
-    // Call Spotify
-    const spotifyRes = await axios.get(
-      "[https://api.spotify.com/v1/recommendations](https://api.spotify.com/v1/recommendations)",
-      {
-        params: {
-          seed_tracks: excludeId,
-          limit: 9,
-        },
-        headers: {
-          Authorization: `Bearer ${dbUser.spotifyAccessToken}`,
-        },
+    const spotifyRes = await axios.get("https://spotify.com", {
+      params: {
+        seed_tracks: excludeId,
+        limit: 9,
       },
-    );
+      headers: {
+        Authorization: `Bearer ${dbUser.spotifyAccessToken}`,
+      },
+    });
 
     const mappedTracks = spotifyRes.data.tracks.map((track) => ({
       spotifyId: track.id,
