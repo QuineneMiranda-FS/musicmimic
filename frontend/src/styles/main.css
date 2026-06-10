@@ -63,7 +63,7 @@ p {
   box-sizing: border-box;
 }
 
-/* PAGE HEADER & SEARCH BAR */
+/* Page Header & Search  */
 .search-page {
   padding: 40px 32px;
   box-sizing: border-box;
@@ -158,7 +158,7 @@ header {
   background-color: rgba(255, 255, 255, 0.1) !important; */
 }
 
-/* STRICT 3-COLUMN DASHBOARD GRID */
+/* 3-Column */
 .results-area {
   width: 100%;
 }
@@ -194,7 +194,7 @@ header {
   gap: 8px;
 }
 
-/* SPOTIFY LIST MEDIA CARDS  */
+/* Spotify Media Cards  */
 .card {
   display: flex;
   align-items: center;
@@ -264,7 +264,7 @@ header {
   text-overflow: ellipsis;
 }
 
-/* MOOD COMPONENTS */
+/* Mood Components */
 .track-card {
   cursor: pointer;
 }
@@ -348,4 +348,214 @@ header {
   background-color: rgba(255, 255, 255, 0.02);
   border-radius: 4px;
   text-align: center;
+}
+/* Song Details Page Layout  */
+
+.details-page {
+  padding: 40px 32px;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.details-nav {
+  margin-bottom: 24px;
+}
+
+.back-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition: color 0.2s ease;
+}
+
+.back-link:hover {
+  color: var(--accent);
+}
+
+/* Two-Column  */
+.details-split-container {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  gap: 48px;
+  align-items: start;
+  margin-bottom: 48px;
+}
+
+@media (max-width: 768px) {
+  .details-split-container {
+    grid-template-columns: 1fr; /* Stack on small displays */
+    gap: 32px;
+  }
+  .details-artwork-panel {
+    display: flex;
+    justify-content: center;
+  }
+}
+
+/* Left: Img */
+.large-cover-frame {
+  width: 300px;
+  height: 300px;
+  background-color: var(--bg-card);
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+}
+
+.large-cover-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fallback-emoticon-avatar {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 5rem;
+  background-color: #242424;
+}
+
+/* Right: Content  */
+.details-content-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.song-meta-header h1 {
+  font-size: 2.5rem;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.meta-artist {
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.vibe-badge {
+  display: inline-block;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-main);
+  padding: 6px 16px;
+  border-radius: 500px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vibe-badge span {
+  color: var(--accent);
+}
+
+/* Lyrics Content Card */
+.lyrics-card {
+  background-color: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border);
+  padding: 24px;
+  border-radius: 8px;
+}
+
+.lyrics-body-text {
+  font-family: Georgia, serif;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #e0e0e0;
+  font-style: italic;
+  white-space: pre-line;
+  max-height: 350px;
+  overflow-y: auto;
+  padding-right: 12px;
+}
+
+/* Lyrics Scroll */
+.lyrics-body-text::-webkit-scrollbar {
+  width: 6px;
+}
+.lyrics-body-text::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+/* Bottom: Spotify Recommendations */
+.details-recommendations-section {
+  width: 100%;
+}
+
+.details-status-msg {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  background-color: var(--bg-card);
+  border-radius: 8px;
+}
+
+.rec-grid-shelf {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+/* Recommendation Item Cards */
+.rec-mini-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background-color: var(--bg-card);
+  padding: 12px 16px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.rec-mini-card:hover {
+  background-color: var(--bg-card-hover);
+  border-color: var(--border);
+}
+
+.rec-mini-card img {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.rec-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.rec-card-info h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rec-card-info p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

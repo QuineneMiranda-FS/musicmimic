@@ -37,7 +37,7 @@ const loadPageData = async () => {
       "http://localhost:3000/api/tracks/recommendations",
       {
         params: { excludeId: trackId.value },
-        headers: { Authorization: `Bearer ${token}` }, // Send JWT to chk user
+        headers: { Authorization: `Bearer ${token}` },
       },
     );
     recommendations.value = recsRes.data;
@@ -67,90 +67,64 @@ onMounted(loadPageData);
 </script>
 
 <template>
-  <div class="min-h-screen bg-neutral-950 text-white p-6 md:p-12 font-sans">
-    <div class="max-w-5xl mx-auto mb-8">
-      <router-link
-        to="/search"
-        class="text-zinc-400 hover:text-green-400 font-medium text-sm inline-flex items-center gap-1.5"
-      >
+  <div class="details-page">
+    <nav class="details-nav">
+      <router-link to="/search" class="back-link">
         ← Back to Search
       </router-link>
-    </div>
+    </nav>
 
-    <div
-      class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 items-start"
-    >
-      <div
-        class="bg-zinc-900 p-6 rounded-xl border border-zinc-800 text-center shadow-xl flex flex-col items-center"
-      >
-        <img
-          v-if="albumImage"
-          :src="albumImage"
-          alt="Cover"
-          class="w-44 h-44 rounded-lg object-cover shadow-md mb-4 border border-zinc-800"
-        />
-        <div v-else class="text-7xl my-4">{{ emoticon }}</div>
-
-        <h1 class="text-xl font-black mb-1 truncate w-full px-2" :title="title">
-          {{ title }}
-        </h1>
-        <p class="text-zinc-400 text-sm mb-4 truncate w-full px-2">
-          {{ artist }}
-        </p>
-        <div
-          class="inline-block px-4 py-1.5 rounded-full text-xs font-bold bg-zinc-800 text-green-400 border border-zinc-700 tracking-wider"
-        >
-          Vibe Profile: {{ mood }} {{ emoticon }}
+    <div class="details-split-container">
+      <aside class="details-artwork-panel">
+        <div class="large-cover-frame">
+          <img v-if="albumImage" :src="albumImage" alt="Album Cover" />
+          <div v-else class="fallback-emoticon-avatar">{{ emoticon }}</div>
         </div>
-      </div>
+      </aside>
 
-      <div
-        class="md:col-span-2 bg-zinc-900/50 border border-zinc-800/60 p-6 rounded-xl min-h-[300px]"
-      >
-        <h2
-          class="text-sm font-bold uppercase tracking-wider mb-4 border-b border-zinc-800 pb-2 text-zinc-400"
-        >
-          Genius Lyrics:
-        </h2>
-        <p
-          class="text-zinc-300 text-sm leading-relaxed whitespace-pre-line font-serif italic max-h-[400px] overflow-y-auto pr-2"
-        >
-          {{ lyrics }}
-        </p>
-      </div>
+      <main class="details-content-panel">
+        <header class="song-meta-header">
+          <h1 :title="title">{{ title }}</h1>
+          <p class="meta-artist">{{ artist }}</p>
+          <div class="vibe-badge">
+            Mood: <span>{{ mood }} {{ emoticon }}</span>
+          </div>
+        </header>
+
+        <section class="lyrics-card">
+          <h2>Genius Lyrics</h2>
+          <p class="lyrics-body-text">
+            {{ lyrics }}
+          </p>
+        </section>
+      </main>
     </div>
 
-    <div class="max-w-5xl mx-auto mt-12 border-t border-zinc-900 pt-8">
-      <h2 class="text-md font-bold uppercase tracking-wider mb-6 text-zinc-300">
-        ✨ Recommended Songs via Spotify Mix
-      </h2>
+    <footer class="details-recommendations-section">
+      <h2>✨ Recommended Songs via Spotify Mix</h2>
 
-      <div v-if="isLoadingRecs" class="text-zinc-500 text-sm animate-pulse">
-        Connecting to Spotify Web API server matrix...
+      <div v-if="isLoadingRecs" class="details-status-msg">
+        <span class="loading-spinner"></span>
+        <p>Connecting to Spotify Web API ...</p>
       </div>
 
-      <div v-else class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      <div v-else class="rec-grid-shelf">
         <div
           v-for="rec in recommendations"
           :key="rec.spotifyId"
-          class="p-3 bg-zinc-900 border border-zinc-800 rounded-lg flex items-center gap-3"
+          class="rec-mini-card"
         >
-          <img
-            :src="rec.image"
-            alt="Art"
-            class="w-10 h-10 rounded object-cover flex-shrink-0"
-          />
-          <div class="truncate">
-            <p
-              class="font-bold text-xs truncate text-zinc-200"
-              :title="rec.title"
-            >
-              {{ rec.title }}
-            </p>
-            <p class="text-[11px] text-zinc-400 truncate">{{ rec.artist }}</p>
+          <img :src="rec.image || 'fallback.jpg'" alt="Album Mini Art" />
+          <div class="rec-card-info">
+            <h3 :title="rec.title">{{ rec.title }}</h3>
+            <p>{{ rec.artist }}</p>
           </div>
         </div>
       </div>
-    </div>
+    </footer>
   </div>
 </template>
+
+<style scoped>
+@import "../styles/main.css";
+</style>

@@ -3,7 +3,7 @@ const router = express.Router();
 const axios = require("axios");
 const cheerio = require("cheerio");
 const { OpenAI } = require("openai");
-const { User } = require("../models"); // Required to pull active Spotify access tokens
+const { User } = require("../models");
 
 require("dotenv").config();
 
@@ -12,13 +12,12 @@ const openai = new OpenAI({
   baseURL: "http://localhost:11434/v1",
 });
 
-// Helper function to extract user ID out of JWT or request context
-// Replace this with your actual middleware user lookup if different!
+// Helper function to extract user ID out of JWT
 const getUserIdFromReq = (req) => {
   return req.user?.userId || 1;
 };
 
-// 1. Live Fetch & Analyze Route (No Database Saving/Checking)
+// Live Fetch & Analyze
 router.post("/analyze", async (req, res) => {
   const { spotifyId, title, artist } = req.body;
 
@@ -34,7 +33,7 @@ router.post("/analyze", async (req, res) => {
       const $ = cheerio.load(lyricPage.data);
       let scrapedLyrics = "";
 
-      // Target real, modern Genius lyrics nodes
+      // Genuis lyric nodes
       $(
         '[class^="Lyrics__Container"], .lyrics, [data-lyrics-container="true"]',
       ).each((i, el) => {
@@ -89,7 +88,7 @@ router.post("/analyze", async (req, res) => {
       }
     }
 
-    // Static safety net if OpenRouter fails completely
+    // Static safety net if AI fails
     if (!label || !emoji) {
       const localMoodPool = [
         { moodLabel: "Energetic", emoji: "⚡" },
@@ -103,7 +102,7 @@ router.post("/analyze", async (req, res) => {
       emoji = localMoodPool[index].emoji;
     }
 
-    // Send the live data straight back without involving database records
+    // Skip db, send live data
     return res.json({
       spotifyId,
       title,
@@ -118,13 +117,13 @@ router.post("/analyze", async (req, res) => {
   }
 });
 
-// 2. Real Live Spotify Recommendation Proxy Route
+// Spotify recs
 router.get("/recommendations", async (req, res) => {
   const { excludeId } = req.query;
   const userId = getUserIdFromReq(req);
 
   try {
-    // Look up user credentials dynamically to acquire an access token
+    // Get user token
     const dbUser = await User.findByPk(userId);
     if (!dbUser || !dbUser.spotifyAccessToken) {
       return res
@@ -136,7 +135,7 @@ router.get("/recommendations", async (req, res) => {
       `[Spotify] Fetching real live recommendations for track seed: ${excludeId}`,
     );
 
-    // Call Spotify's official web recommendations engine directly
+    // Call Spotify
     const spotifyRes = await axios.get(
       "[https://api.spotify.com/v1/recommendations](https://api.spotify.com/v1/recommendations)",
       {
@@ -150,7 +149,6 @@ router.get("/recommendations", async (req, res) => {
       },
     );
 
-    // Map Spotify's complex object shape down to clean frontend keys
     const mappedTracks = spotifyRes.data.tracks.map((track) => ({
       spotifyId: track.id,
       title: track.name,
