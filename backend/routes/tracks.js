@@ -38,18 +38,22 @@ router.post("/analyze", async (req, res) => {
       const $ = cheerio.load(lyricPage.data);
       let scrapedLyrics = "";
 
+      // Scrapes text where class starts w/ "Lyrics__Container" or uses data attribute
       $('[class^="Lyrics__Container"], [data-lyrics-container="true"]').each(
         (i, el) => {
           let htmlContent = $(el).html();
+          // Convert line break & closing tags into new line
           if (htmlContent) {
             htmlContent = htmlContent.replace(/<br\s*\/?>/gi, "\n");
             htmlContent = htmlContent.replace(/<\/p>|<\/div>/gi, "\n");
+            // Strip out remaining HTML tags so have text only lyrics
             const cleanText = cheerio.load(htmlContent).text();
             scrapedLyrics += cleanText + "\n";
           }
         },
       );
 
+      // For Legacy classes if new class doesn't work
       if (!scrapedLyrics.trim()) {
         $(".lyrics").each((i, el) => {
           let htmlContent = $(el).html() || "";
@@ -58,16 +62,18 @@ router.post("/analyze", async (req, res) => {
         });
       }
 
-      // Clean metadata headers and footers
+      // Clean headers & footers metadata, contributors, embed etc
       scrapedLyrics = scrapedLyrics.replace(
         /^\d+\s+Contributors?[\s\S]*?(?=Lyrics)/gi,
         "",
       );
+      // Deletes dup title
       scrapedLyrics = scrapedLyrics.replace(/^.*?\bLyrics\b\s*/i, "");
+      // Removes widget text & trailing code/embeds at bottom
       scrapedLyrics = scrapedLyrics.replace(/You might also like[\s\S]*/gi, "");
-
+      // Normalize Spacing
       scrapedLyrics = scrapedLyrics.replace(/\n{3,}/g, "\n\n").trim();
-
+      // Final Text Limit ?? Adjust
       if (scrapedLyrics) {
         lyricsText = scrapedLyrics.substring(0, 1500);
       }
