@@ -16,6 +16,12 @@ const router = createRouter({
       component: () => import("../views/SearchView.vue"),
       meta: { requiresAuth: true },
     },
+    {
+      path: "/track-details",
+      name: "MoodSearch",
+      component: () => import("../views/SongDetailsView.vue"),
+      meta: { requiresAuth: true },
+    },
   ],
 });
 

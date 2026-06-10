@@ -107,11 +107,28 @@ VITE_API_URL=http://127.0.0.1:3000
 
 _Note: Vite requires frontend environment variables to be prefixed with `VITE_` to protect your application from leaking backend secrets to the browser client.\_
 
+### 4. Install local AI
+
+Open a new terminal window, install:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
+
 ---
 
 ## Running the Application
 
-Because this application features a strictly decoupled frontend and backend, you must run both servers using separate terminal windows. Note for self: debating concurrently...research that more.
+Before running the backend and frontend, you should fire up Ollama. Also this application features a strictly decoupled frontend and backend, you must run both servers using separate terminal windows. (You will have 3 terminal windows running.)
+Note for self: debating concurrently...research that more.
+
+### Start Ollama
+
+```bash
+ollama run llama3
+```
+
+\*The Ollama local AI inference service will listen on: **`http://127.0.0.1:11434`\***
 
 ### Start Backend API Server
 

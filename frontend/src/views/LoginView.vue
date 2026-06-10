@@ -19,5 +19,5 @@ useLoginLogic();
 </script>
 
 <style scoped>
-@import "../styles/login.css";
+@import "../styles/main.css";
 </style>

@@ -15,6 +15,9 @@ const authCallbackRoutes = require("./auth-callback");
 // Import custom JWT middleware
 const { authenticateJWT } = require("../middleware/auth");
 
+// Import Tracks router
+const tracksRouter = require("./tracks");
+
 // Test API Endpoint
 router.get("/status", (req, res) => {
   res.json({ status: "success", message: "API is online" });
@@ -23,6 +26,8 @@ router.get("/status", (req, res) => {
 // Auth routers
 router.use("/auth", authRoutes);
 router.use("/auth", authCallbackRoutes);
+//Track router
+router.use("/tracks", tracksRouter);
 
 router.get("/search", authenticateJWT, async (req, res, next) => {
   try {

@@ -1,0 +1,173 @@
+const express = require("express");
+const router = express.Router();
+const axios = require("axios");
+const cheerio = require("cheerio");
+const { OpenAI } = require("openai");
+const { User } = require("../models"); // Required to pull active Spotify access tokens
+
+require("dotenv").config();
+
+const openai = new OpenAI({
+  apiKey: "ollama", // **Note Ollama expects a non-empty string
+  baseURL: "http://localhost:11434/v1",
+});
+
+// Helper function to extract user ID out of JWT or request context
+// Replace this with your actual middleware user lookup if different!
+const getUserIdFromReq = (req) => {
+  return req.user?.userId || 1;
+};
+
+// 1. Live Fetch & Analyze Route (No Database Saving/Checking)
+router.post("/analyze", async (req, res) => {
+  const { spotifyId, title, artist } = req.body;
+
+  try {
+    console.log(`[Genius] Scraping live lyrics for: ${title} - ${artist}`);
+    const searchUrl = `https://api.genius.com/search?q=${encodeURIComponent(`${title} ${artist}`)}&access_token=${process.env.GENIUS_ACCESS_TOKEN}`;
+    const geniusSearch = await axios.get(searchUrl);
+    const lyricPath = geniusSearch.data.response.hits[0]?.result?.path;
+
+    let lyricsText = "No lyrics found on Genius for this track.";
+    if (lyricPath) {
+      const lyricPage = await axios.get(`https://genius.com${lyricPath}`);
+      const $ = cheerio.load(lyricPage.data);
+      let scrapedLyrics = "";
+
+      // Target real, modern Genius lyrics nodes
+      $(
+        '[class^="Lyrics__Container"], .lyrics, [data-lyrics-container="true"]',
+      ).each((i, el) => {
+        scrapedLyrics +=
+          $(el)
+            .text()
+            .replace(/<br\s*\/?>/gi, "\n") + "\n";
+      });
+
+      scrapedLyrics = scrapedLyrics.trim();
+      if (scrapedLyrics) {
+        lyricsText = scrapedLyrics.substring(0, 1500);
+      }
+    }
+
+    // AI Inference
+    const freeModels = ["llama3"];
+
+    let label = null;
+    let emoji = null;
+
+    for (const modelAttempt of freeModels) {
+      try {
+        const aiResponse = await openai.chat.completions.create({
+          model: modelAttempt,
+          response_format: { type: "json_object" },
+          messages: [
+            {
+              role: "system",
+              content:
+                "You analyze lyrics for emotional tone. Return a JSON object with keys 'mood' and 'emoticon'. Values must strictly be one pair from: [Energetic/⚡, Melancholic/🌧️, Angry/🔥, Chill/🌊, Romantic/💖].",
+            },
+            {
+              role: "user",
+              content: `Analyze this song: ${title} by ${artist}. Lyrics: ${lyricsText}`,
+            },
+          ],
+        });
+
+        if (aiResponse) {
+          let cleanContent = aiResponse.choices[0].message.content.trim();
+          if (cleanContent.startsWith("```")) {
+            cleanContent = cleanContent.replace(/^```json|```$/g, "").trim();
+          }
+          const parsed = JSON.parse(cleanContent);
+          label = parsed.mood;
+          emoji = parsed.emoticon;
+          break;
+        }
+      } catch (err) {
+        console.warn(`[AI] ${modelAttempt} failed, checking fallback model...`);
+      }
+    }
+
+    // Static safety net if OpenRouter fails completely
+    if (!label || !emoji) {
+      const localMoodPool = [
+        { moodLabel: "Energetic", emoji: "⚡" },
+        { moodLabel: "Melancholic", emoji: "🌧️" },
+        { moodLabel: "Angry", emoji: "🔥" },
+        { moodLabel: "Chill", emoji: "🌊" },
+        { moodLabel: "Romantic", emoji: "💖" },
+      ];
+      const index = title.length % localMoodPool.length;
+      label = localMoodPool[index].moodLabel;
+      emoji = localMoodPool[index].emoji;
+    }
+
+    // Send the live data straight back without involving database records
+    return res.json({
+      spotifyId,
+      title,
+      artist,
+      mood: label,
+      emoticon: emoji,
+      lyricsText: lyricsText,
+    });
+  } catch (error) {
+    console.error("Analysis Error:", error);
+    res.status(500).json({ error: "Failed to process live tracking metrics." });
+  }
+});
+
+// 2. Real Live Spotify Recommendation Proxy Route
+router.get("/recommendations", async (req, res) => {
+  const { excludeId } = req.query;
+  const userId = getUserIdFromReq(req);
+
+  try {
+    // Look up user credentials dynamically to acquire an access token
+    const dbUser = await User.findByPk(userId);
+    if (!dbUser || !dbUser.spotifyAccessToken) {
+      return res
+        .status(401)
+        .json({ error: "Unauthorized. Missing Spotify token." });
+    }
+
+    console.log(
+      `[Spotify] Fetching real live recommendations for track seed: ${excludeId}`,
+    );
+
+    // Call Spotify's official web recommendations engine directly
+    const spotifyRes = await axios.get(
+      "[https://api.spotify.com/v1/recommendations](https://api.spotify.com/v1/recommendations)",
+      {
+        params: {
+          seed_tracks: excludeId,
+          limit: 9,
+        },
+        headers: {
+          Authorization: `Bearer ${dbUser.spotifyAccessToken}`,
+        },
+      },
+    );
+
+    // Map Spotify's complex object shape down to clean frontend keys
+    const mappedTracks = spotifyRes.data.tracks.map((track) => ({
+      spotifyId: track.id,
+      title: track.name,
+      artist: track.artists.map((a) => a.name).join(", "),
+      image: track.album?.images?.[0]?.url || "",
+    }));
+
+    return res.json(mappedTracks);
+  } catch (error) {
+    console.error(
+      "Spotify Recommendations Error:",
+      error.response?.data || error.message,
+    );
+    return res
+      .status(500)
+      .json({ error: "Failed to pull live metrics from Spotify API." });
+  }
+});
+
+module.exports = router;
