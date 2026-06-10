@@ -4,15 +4,13 @@ import { useRoute } from "vue-router";
 import axios from "axios";
 
 const route = useRoute();
-
 const trackId = ref(route.query.id);
 const title = ref(route.query.title);
 const artist = ref(route.query.artist);
 const mood = ref(route.query.mood);
 const emoticon = ref(route.query.emoticon);
 const albumImage = ref(route.query.image);
-
-const lyrics = ref("Scraping Genius Live Data...");
+const lyrics = ref("Getting Genius Live Data...");
 const recommendations = ref([]);
 const isLoadingRecs = ref(false);
 
@@ -20,7 +18,7 @@ const loadPageData = async () => {
   if (!trackId.value) return;
   isLoadingRecs.value = true;
 
-  // Fetch Lyrics and Mood
+  // Fetch Lyrics and Mood from Backend
   try {
     const analyzeRes = await axios.post(
       "http://localhost:3000/api/tracks/analyze",
@@ -32,7 +30,7 @@ const loadPageData = async () => {
     );
     lyrics.value = analyzeRes.data.lyricsText;
 
-    // Update page if backend dif mood than query
+    // Update frontend
     if (analyzeRes.data.mood) mood.value = analyzeRes.data.mood;
     if (analyzeRes.data.emoticon) emoticon.value = analyzeRes.data.emoticon;
   } catch (err) {
@@ -40,20 +38,24 @@ const loadPageData = async () => {
     lyrics.value = "Failed to sync song profile elements.";
   }
 
-  // Fetch Spotify Recommendations
+  // Fetch Spotify Recs from Backend
   try {
     const token = localStorage.getItem("app_jwt");
     const recsRes = await axios.get(
       "http://localhost:3000/api/tracks/recommendations",
       {
-        params: { excludeId: trackId.value },
-        headers: { Authorization: `Bearer ${token}` },
+        params: {
+          mood: mood.value,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
     );
+
     recommendations.value = recsRes.data;
   } catch (err) {
     console.error("Spotify Recommendations Subpage Error:", err);
-    // Another Fallback -user still sees lyrics if Spotify is down/unauthorized
     recommendations.value = [];
   } finally {
     isLoadingRecs.value = false;

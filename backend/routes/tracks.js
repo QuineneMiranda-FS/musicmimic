@@ -20,12 +20,12 @@ const getUserIdFromReq = (req) => {
 router.post("/analyze", async (req, res) => {
   const { spotifyId, title, artist } = req.body;
   try {
-    console.log(`[Genius] Scraping live lyrics for: ${title} - ${artist}`);
+    console.log(`[Genius] getting live lyrics for: ${title} - ${artist}`);
 
     const searchUrl = `https://api.genius.com/search?q=${encodeURIComponent(`${title} ${artist}`)}&access_token=${process.env.GENIUS_ACCESS_TOKEN}`;
     const geniusSearch = await axios.get(searchUrl);
 
-    const lyricPath = geniusSearch.data.response.hits[0]?.result?.path;
+    const lyricPath = geniusSearch.data?.response?.hits?.[0]?.result?.path;
     let lyricsText = "No lyrics found on Genius for this track.";
 
     if (lyricPath) {
@@ -42,18 +42,14 @@ router.post("/analyze", async (req, res) => {
         (i, el) => {
           let htmlContent = $(el).html();
           if (htmlContent) {
-            // Replace break tags w/ new lines
             htmlContent = htmlContent.replace(/<br\s*\/?>/gi, "\n");
-            // Replace closing tags with new lines
             htmlContent = htmlContent.replace(/<\/p>|<\/div>/gi, "\n");
-            // Load modified HTML into Cheerio to strip tags safely
             const cleanText = cheerio.load(htmlContent).text();
             scrapedLyrics += cleanText + "\n";
           }
         },
       );
 
-      // Fallback fix for legacy Genius templates
       if (!scrapedLyrics.trim()) {
         $(".lyrics").each((i, el) => {
           let htmlContent = $(el).html() || "";
@@ -62,21 +58,15 @@ router.post("/analyze", async (req, res) => {
         });
       }
 
-      // --- Don't show metadata ---
+      // Clean metadata headers and footers
       scrapedLyrics = scrapedLyrics.replace(
         /^\d+\s+Contributors?[\s\S]*?(?=Lyrics)/gi,
         "",
       );
       scrapedLyrics = scrapedLyrics.replace(/^.*?\bLyrics\b\s*/i, "");
+      scrapedLyrics = scrapedLyrics.replace(/You might also like[\s\S]*/gi, "");
 
-      scrapedLyrics = scrapedLyrics.replace(
-        /You might also like[\s\S]*\$/gi,
-        "",
-      );
-
-      scrapedLyrics = scrapedLyrics
-        .replace(/\n{3,}/g, "\n\n") // spacing fix
-        .trim();
+      scrapedLyrics = scrapedLyrics.replace(/\n{3,}/g, "\n\n").trim();
 
       if (scrapedLyrics) {
         lyricsText = scrapedLyrics.substring(0, 1500);
@@ -107,7 +97,7 @@ router.post("/analyze", async (req, res) => {
         });
 
         if (aiResponse) {
-          let cleanContent = aiResponse.choices[0].message.content.trim();
+          let cleanContent = aiResponse.choices.message.content.trim();
           if (cleanContent.startsWith("```")) {
             cleanContent = cleanContent.replace(/^```json|```$/g, "").trim();
           }
@@ -121,7 +111,6 @@ router.post("/analyze", async (req, res) => {
       }
     }
 
-    // Static safety net if AI fails
     if (!label || !emoji) {
       const localMoodPool = [
         { moodLabel: "Energetic", emoji: "⚡" },
@@ -135,7 +124,6 @@ router.post("/analyze", async (req, res) => {
       emoji = localMoodPool[index].emoji;
     }
 
-    // Skip db, send live data
     return res.json({
       spotifyId,
       title,
@@ -152,11 +140,10 @@ router.post("/analyze", async (req, res) => {
 
 // Spotify recs
 router.get("/recommendations", async (req, res) => {
-  const { excludeId } = req.query;
+  const { mood } = req.query;
   const userId = getUserIdFromReq(req);
 
   try {
-    // Get user token
     const dbUser = await User.findByPk(userId);
     if (!dbUser || !dbUser.spotifyAccessToken) {
       return res
@@ -164,31 +151,69 @@ router.get("/recommendations", async (req, res) => {
         .json({ error: "Unauthorized. Missing Spotify token." });
     }
 
+    // Genres & Descriptions of moods
+    let trackSearchQuery = "genre:pop chill";
+    if (mood === "Melancholic") {
+      trackSearchQuery = "genre:ambient sad";
+    } else if (mood === "Energetic") {
+      trackSearchQuery = "genre:edm upbeat";
+    } else if (mood === "Chill") {
+      trackSearchQuery = "genre:lofi chill";
+    } else if (mood === "Angry") {
+      trackSearchQuery = "genre:rock aggressive";
+    } else if (mood === "Romantic") {
+      trackSearchQuery = "genre:r-n-b love";
+    }
+
     console.log(
-      `[Spotify] Fetching real live recommendations for track seed: ${excludeId}`,
+      `[Spotify] Querying broad catalog tracks matching mood: ${mood} using tag: ${trackSearchQuery}`,
     );
 
-    const spotifyRes = await axios.get("https://spotify.com", {
+    const spotifySearchRes = await axios.get("https://spotify.com", {
       params: {
-        seed_tracks: excludeId,
-        limit: 9,
+        q: trackSearchQuery,
+        type: "track",
+        limit: 20,
       },
       headers: {
         Authorization: `Bearer ${dbUser.spotifyAccessToken}`,
       },
     });
 
-    const mappedTracks = spotifyRes.data.tracks.map((track) => ({
-      spotifyId: track.id,
-      title: track.name,
-      artist: track.artists.map((a) => a.name).join(", "),
-      image: track.album?.images?.[0]?.url || "",
-    }));
+    const rawTracks = spotifySearchRes.data?.tracks?.items || [];
 
-    return res.json(mappedTracks);
+    // Filter objects
+    const mappedTracks = rawTracks
+      .filter((track) => track && track.id)
+      .map((track) => {
+        let albumImage = "fallback.jpg";
+        if (
+          track.album &&
+          track.album.images &&
+          track.album.images.length > 0
+        ) {
+          albumImage = track.album.images[0].url;
+        }
+
+        return {
+          spotifyId: track.id,
+          title: track.name,
+          artist: track.artists
+            ? track.artists.map((a) => a.name).join(", ")
+            : "Unknown Artist",
+          image: albumImage,
+        };
+      });
+
+    // Shuffle
+    const randomizedTracks = mappedTracks
+      .sort(() => 0.5 - Math.random())
+      .slice(0, 9);
+
+    return res.json(randomizedTracks);
   } catch (error) {
     console.error(
-      "Spotify Recommendations Error:",
+      "Spotify Mood Track Search Error:",
       error.response?.data || error.message,
     );
     return res
