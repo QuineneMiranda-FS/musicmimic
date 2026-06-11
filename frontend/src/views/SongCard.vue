@@ -1,66 +1,134 @@
 <template>
-  <div
-    class="flex items-center justify-between p-4 bg-zinc-900 text-white rounded-lg w-80 relative shadow-md border border-zinc-800 select-none"
-  >
-    <div
-      @click="goToSongDetailsPage"
-      class="flex items-center gap-3 truncate pr-2 cursor-pointer hover:text-green-400 transition flex-grow"
-    >
+  <div class="card track-card-widget">
+    <div @click="goToSongDetailsPage" class="info interactive-info-block">
       <img
         :src="track.image || track.album?.images?.[2]?.url"
         alt="Cover"
-        class="w-10 h-10 rounded object-cover flex-shrink-0 border border-zinc-800"
+        class="widget-avatar"
       />
-      <div class="truncate">
-        <h3 class="font-bold text-sm truncate max-w-[140px]">
-          {{ track.name }}
-        </h3>
-        <p class="text-zinc-400 text-xs truncate max-w-[140px]">
-          {{ track.artist || track.artists?.[0]?.name }}
-        </p>
+      <div class="text-cluster">
+        <h3>{{ track.name }}</h3>
+        <p>{{ track.artist || track.artists?.[0]?.name }}</p>
       </div>
     </div>
 
     <div
-      class="relative text-2xl h-10 w-10 flex items-center justify-center rounded-full hover:bg-zinc-800 transition z-20 flex-shrink-0"
+      class="tooltip-trigger"
       @mouseenter="showTooltip = true"
       @mouseleave="showTooltip = false"
     >
-      <span v-if="isLoading" class="text-xs text-zinc-500 animate-pulse"
-        >...</span
-      >
+      <span v-if="isLoading" class="loading-dots">...</span>
       <span v-else-if="aiData" class="cursor-help">{{ aiData.emoticon }}</span>
 
       <Transition name="fade">
-        <div
-          v-if="showTooltip && aiData"
-          class="absolute bottom-12 right-0 bg-black border border-zinc-700 rounded-lg p-3 w-44 shadow-2xl z-50 text-left"
-        >
-          <p class="text-[10px] text-zinc-500 font-bold uppercase mb-0.5">
-            AI Analysis
-          </p>
-          <p class="text-sm font-semibold text-green-400">
-            Vibe: {{ aiData.mood }}
-          </p>
+        <div v-if="showTooltip && aiData" class="analysis-tooltip">
+          <p class="tooltip-label">AI Analysis</p>
+          <p class="tooltip-vibe">Vibe: {{ aiData.mood }}</p>
         </div>
       </Transition>
     </div>
   </div>
 </template>
 
-<script setup>
-import { useRouter } from "vue-router";
-import { useCardLogic } from "../js/card.js";
+<style scoped>
+/* Don't move -- Component Specific Styles */
+.track-card-widget {
+  width: 20rem; /* w-80 */
+  position: relative;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  user-select: none;
+}
 
-const props = defineProps({
-  track: { type: Object, required: true },
-  spotifyToken: { type: String, required: true },
-});
+.interactive-info-block {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
 
-const router = useRouter();
+.interactive-info-block:hover {
+  color: var(--accent-hover);
+}
 
-const { aiData, isLoading, showTooltip, goToSongDetailsPage } = useCardLogic(
-  props,
-  router,
-);
-</script>
+.widget-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+
+.text-cluster {
+  min-width: 0;
+}
+
+.text-cluster h3 {
+  max-width: 140px;
+}
+
+/* Tooltip/Anchor */
+.tooltip-trigger {
+  position: relative;
+  font-size: 1.5rem;
+  height: 40px;
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.tooltip-trigger:hover {
+  background-color: var(--bg-card-hover);
+}
+
+.loading-dots {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  animation: pulse 2s infinite;
+}
+
+.analysis-tooltip {
+  position: absolute;
+  bottom: 48px;
+  right: 0;
+  background-color: #000;
+  border: 1px solid #3e3e3e;
+  border-radius: 8px;
+  padding: 12px;
+  width: 11rem;
+  box-shadow: var(--shadow);
+  z-index: 50;
+  text-align: left;
+}
+
+.tooltip-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.tooltip-vibe {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+</style>

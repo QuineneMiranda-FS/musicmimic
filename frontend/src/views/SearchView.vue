@@ -164,6 +164,10 @@ const {
 @import "../styles/main.css";
 
 /* Component Specific Styles - do not move */
+.track-header h3 {
+  flex: 1;
+  min-width: 0;
+}
 .clickable-badge {
   cursor: pointer;
   transition:

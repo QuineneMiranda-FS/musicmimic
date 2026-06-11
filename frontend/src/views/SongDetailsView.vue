@@ -39,7 +39,7 @@
       <main class="details-content-panel">
         <header class="song-meta-header">
           <h1 :title="title">{{ title }}</h1>
-          <p class="meta-artist">{{ artist }}</p>
+          <div class="meta-artist">{{ artist }}</div>
           <div class="vibe-badge">
             Mood: <span>{{ mood }} {{ emoticon }}</span>
           </div>
