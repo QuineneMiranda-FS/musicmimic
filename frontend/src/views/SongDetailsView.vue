@@ -1,9 +1,9 @@
 <template>
   <div class="details-page">
     <nav class="details-nav">
-      <router-link to="/search" class="back-link">
+      <a href="#" @click.prevent="goBack" class="back-link">
         ← Back to Search
-      </router-link>
+      </a>
     </nav>
 
     <div class="details-split-container">
@@ -92,10 +92,15 @@
 </template>
 
 <script setup>
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import { useDetailsLogic } from "../js/details.js";
 
 const route = useRoute();
+const router = useRouter();
+
+const goBack = () => {
+  router.back();
+};
 
 const {
   trackId,

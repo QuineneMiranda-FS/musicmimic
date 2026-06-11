@@ -1,8 +1,11 @@
 <template>
   <div id="app-container">
-    <!-- Fix: Add Nav and Header Here -->
     <main class="main-content">
-      <RouterView />
+      <RouterView v-slot="{ Component }">
+        <KeepAlive>
+          <component :is="Component" />
+        </KeepAlive>
+      </RouterView>
     </main>
   </div>
 </template>
