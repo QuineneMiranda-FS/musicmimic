@@ -163,7 +163,7 @@ const {
 <style scoped>
 @import "../styles/main.css";
 
-/* Component Specific Styles - do not move */
+/* Component Specific Styles - do not move! */
 .track-header h3 {
   flex: 1;
   min-width: 0;

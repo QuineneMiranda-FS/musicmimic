@@ -17,7 +17,7 @@
           <div v-if="previewUrl" class="audio-wrapper">
             <span class="player-label">Listen to Snippet:</span>
             <audio controls :src="previewUrl" class="snippet-player">
-              Your browser does not support the audio element.
+              Your browser does not support the audio snippet player.
             </audio>
           </div>
           <div v-else class="no-preview-msg">
