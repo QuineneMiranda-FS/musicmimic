@@ -1,52 +1,3 @@
-<script setup>
-import { ref } from "vue";
-import axios from "axios";
-import { useRouter } from "vue-router";
-
-const props = defineProps({
-  track: { type: Object, required: true },
-  spotifyToken: { type: String, required: true },
-});
-
-const router = useRouter();
-const aiData = ref(null);
-const isLoading = ref(false);
-const showTooltip = ref(false);
-
-const getTrackMood = async () => {
-  isLoading.value = true;
-  try {
-    const res = await axios.post("http://localhost:3000/api/tracks/analyze", {
-      spotifyId: props.track.id,
-      title: props.track.name,
-      artist: props.track.artist || props.track.artists?.[0]?.name,
-    });
-    aiData.value = res.data;
-  } catch (err) {
-    console.error("Error loading mood", err);
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-const goToSongDetailsPage = () => {
-  if (isLoading.value || !aiData.value) return;
-  router.push({
-    name: "MoodSearch",
-    query: {
-      id: props.track.id,
-      title: props.track.name,
-      artist: props.track.artist || props.track.artists?.[0]?.name,
-      mood: aiData.value.mood,
-      emoticon: aiData.value.emoticon,
-      image: props.track.image || props.track.album?.images?.[0]?.url || "",
-    },
-  });
-};
-
-getTrackMood();
-</script>
-
 <template>
   <div
     class="flex items-center justify-between p-4 bg-zinc-900 text-white rounded-lg w-80 relative shadow-md border border-zinc-800 select-none"
@@ -97,16 +48,19 @@ getTrackMood();
   </div>
 </template>
 
-<style scoped>
-.fade-enter-active,
-.fade-leave-active {
-  transition:
-    opacity 0.2s ease,
-    transform 0.2s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(4px);
-}
-</style>
+<script setup>
+import { useRouter } from "vue-router";
+import { useCardLogic } from "../js/card.js";
+
+const props = defineProps({
+  track: { type: Object, required: true },
+  spotifyToken: { type: String, required: true },
+});
+
+const router = useRouter();
+
+const { aiData, isLoading, showTooltip, goToSongDetailsPage } = useCardLogic(
+  props,
+  router,
+);
+</script>

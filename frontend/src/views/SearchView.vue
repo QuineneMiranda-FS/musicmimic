@@ -89,15 +89,22 @@
             v-if="results.albums && results.albums.length"
             class="column-stack"
           >
-            <div v-for="album in results.albums" :key="album.id" class="card">
-              <a :href="album.spotifyUrl" target="_blank" rel="noopener">
+            <a
+              v-for="album in results.albums"
+              :key="album.id"
+              :href="album.spotifyUrl"
+              target="_blank"
+              rel="noopener"
+              class="card card-link"
+            >
+              <div class="img-container">
                 <img :src="album.image || 'fallback.jpg'" alt="Album Cover" />
-              </a>
+              </div>
               <div class="info">
                 <h3>{{ album.name }}</h3>
                 <p>{{ album.artist }}</p>
               </div>
-            </div>
+            </a>
           </div>
           <p v-else class="empty-column-msg">No album results.</p>
         </section>
@@ -108,25 +115,28 @@
             v-if="results.artists && results.artists.length"
             class="column-stack"
           >
-            <div
+            <a
               v-for="artist in results.artists"
               :key="artist.id"
-              class="card"
+              :href="artist.spotifyUrl"
+              target="_blank"
+              rel="noopener"
+              class="card card-link"
             >
-              <a :href="artist.spotifyUrl" target="_blank" rel="noopener">
+              <div class="img-container">
                 <img
                   :src="artist.image || 'fallback.jpg'"
                   alt="Artist Avatar"
                   class="artist-img"
                 />
-              </a>
+              </div>
               <div class="info">
                 <h3>{{ artist.name }}</h3>
                 <p v-if="artist.genres && artist.genres.length">
                   {{ artist.genres[0] }}
                 </p>
               </div>
-            </div>
+            </a>
           </div>
           <p v-else class="empty-column-msg">No artist results.</p>
         </section>
@@ -136,61 +146,24 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
-import { useRouter } from "vue-router";
-import axios from "axios";
 import { useSearchLogic } from "../js/search.js";
 
-const router = useRouter();
-const { searchQuery, hasSearched, results, executeSearch, logout } =
-  useSearchLogic();
-
-const loadingTrackId = ref(null);
-
-// OPTION A: Click the badge -> Runs Ollama live, adds Emoticon
-const analyzeMoodInline = async (track) => {
-  if (loadingTrackId.value) return;
-
-  loadingTrackId.value = track.id;
-
-  try {
-    const response = await axios.post("/api/tracks/analyze", {
-      spotifyId: track.id,
-      title: track.name,
-      artist: track.artist,
-    });
-
-    // Inject the results
-    track.mood = response.data.mood;
-    track.emoticon = response.data.emoticon;
-  } catch (error) {
-    console.error("Error running local Ollama inference:", error);
-    alert("Could not process this track's mood.");
-  } finally {
-    loadingTrackId.value = null;
-  }
-};
-
-// OPTION B: Click anywhere except Analyze -> Sends to song view page
-const goToSongDetailsPage = (track) => {
-  // If song clicked, but wasn't analyzed, get mood on redirect
-  router.push({
-    name: "MoodSearch",
-    query: {
-      id: track.id,
-      title: track.name,
-      artist: track.artist,
-      mood: track.mood || "Analyzing...",
-      emoticon: track.emoticon || "🎵",
-      image: track.image || "",
-    },
-  });
-};
+const {
+  searchQuery,
+  hasSearched,
+  results,
+  loadingTrackId,
+  executeSearch,
+  analyzeMoodInline,
+  goToSongDetailsPage,
+  logout,
+} = useSearchLogic();
 </script>
 
 <style scoped>
 @import "../styles/main.css";
 
+/* Component Specific Styles - do not move */
 .clickable-badge {
   cursor: pointer;
   transition:

@@ -1,14 +1,15 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import axios from "axios";
 
 export function useSearchLogic() {
   const router = useRouter();
 
-  // Reactive form state tracking
   const username = ref("Authenticated Listener");
   const searchQuery = ref("");
   const hasSearched = ref(false);
   const results = ref({ tracks: [], artists: [], albums: [] });
+  const loadingTrackId = ref(null);
 
   // Ensure user has valid JWT token on page load
   onMounted(() => {
@@ -20,7 +21,6 @@ export function useSearchLogic() {
 
   // Search
   async function executeSearch() {
-    // Prevent empty spaces
     if (!searchQuery.value.trim()) return;
 
     const token = localStorage.getItem("app_jwt");
@@ -35,7 +35,6 @@ export function useSearchLogic() {
         },
       );
 
-      // Handle expire auth
       if (response.status === 401 || response.status === 403) {
         logout();
         return;
@@ -52,30 +51,63 @@ export function useSearchLogic() {
     }
   }
 
+  async function analyzeMoodInline(track) {
+    if (loadingTrackId.value) return;
+
+    loadingTrackId.value = track.id;
+
+    try {
+      const response = await axios.post("/api/tracks/analyze", {
+        spotifyId: track.id,
+        title: track.name,
+        artist: track.artist,
+      });
+
+      track.mood = response.data.mood;
+      track.emoticon = response.data.emoticon;
+    } catch (error) {
+      console.error("Error running local Ollama inference:", error);
+      alert("Could not process this track's mood.");
+    } finally {
+      loadingTrackId.value = null;
+    }
+  }
+
+  // Redirection router push
+  function goToSongDetailsPage(track) {
+    router.push({
+      name: "MoodSearch",
+      query: {
+        id: track.id,
+        title: track.name,
+        artist: track.artist,
+        mood: track.mood || "Analyzing...",
+        emoticon: track.emoticon || "🎵",
+        image: track.image || "",
+        preview_url: track.previewUrl || "",
+      },
+    });
+  }
+
   // Clear global tokens/send user back to login
   function logout() {
-    // Clear local JWT
     localStorage.removeItem("app_jwt");
 
-    // Pop Up Spotify Cookie clearing
     const spotifyLogoutWindow = window.open(
       "https://spotify.com",
       "_blank",
       "width=500,height=400,top=100,left=100",
     );
 
-    // Close Pop Up
     setTimeout(() => {
       if (spotifyLogoutWindow) {
         spotifyLogoutWindow.close();
       }
 
-      // Reset local state
       hasSearched.value = false;
       results.value = { tracks: [], artists: [], albums: [] };
       searchQuery.value = "";
 
-      // Force to LoginView screen
       router.push("/");
     }, 2000);
   }
@@ -85,7 +117,10 @@ export function useSearchLogic() {
     searchQuery,
     hasSearched,
     results,
+    loadingTrackId,
     executeSearch,
+    analyzeMoodInline,
+    goToSongDetailsPage,
     logout,
   };
 }
