@@ -10,9 +10,9 @@
         v-model="searchQuery"
         type="text"
         placeholder="Search tracks, artists, or albums by keyword..."
-        @keyup.enter="executeSearch"
+        @keyup.enter="handleSearchSubmit"
       />
-      <button @click="executeSearch" class="spotify-btn">Search</button>
+      <button @click="handleSearchSubmit" class="spotify-btn">Search</button>
     </div>
 
     <main class="results-area">
@@ -42,7 +42,10 @@
               v-for="track in results.tracks"
               :key="track.id"
               class="card track-card"
-              :class="{ 'is-analyzing': loadingTrackId === track.id }"
+              :class="[
+                track.mood ? `mood-${track.mood.trim().toLowerCase()}` : '',
+                { 'is-analyzing-pulse': track.isAnalyzing },
+              ]"
               @click="goToSongDetailsPage(track)"
             >
               <div class="img-container">
@@ -53,27 +56,17 @@
                   <h3>{{ track.name }}</h3>
 
                   <div v-if="track.emoticon" class="mood-display-block">
-                    <span
-                      class="mood-emoticon animate-pop"
-                      :title="'Ollama detected a ' + track.mood + ' vibe!'"
-                    >
+                    <span class="mood-emoticon animate-pop">
                       {{ track.emoticon }}
                     </span>
                     <span class="mood-label-subtext">{{ track.mood }}</span>
                   </div>
 
                   <span
-                    v-else-if="loadingTrackId === track.id"
-                    class="loading-spinner"
-                    >⏳</span
+                    v-else-if="track.isAnalyzing"
+                    class="analyzing-text-spinner"
                   >
-
-                  <span
-                    v-else
-                    class="analyze-badge clickable-badge"
-                    @click.stop="analyzeMoodInline(track)"
-                  >
-                    🔍 Analyze Mood
+                    ⚡ Analyzing...
                   </span>
                 </div>
                 <p>{{ track.artist }}</p>
@@ -152,12 +145,36 @@ const {
   searchQuery,
   hasSearched,
   results,
-  loadingTrackId,
   executeSearch,
   analyzeMoodInline,
   goToSongDetailsPage,
   logout,
 } = useSearchLogic();
+
+// Auto analyze moods (sequential)
+const handleSearchSubmit = async () => {
+  await executeSearch();
+
+  if (results.value?.tracks?.length) {
+    // **Don't chg to/use .forEach loop it will cause bottleneck and crash Ollama
+    for (const track of results.value.tracks) {
+      // If already analyzed, don't fetch again
+      if (track.mood) continue;
+
+      // Loading
+      track.isAnalyzing = true;
+
+      try {
+        // Ollama breathing room
+        await analyzeMoodInline(track);
+      } catch (err) {
+        console.error("Failed to fetch mood for:", track.name, err);
+      } finally {
+        track.isAnalyzing = false;
+      }
+    }
+  }
+};
 </script>
 
 <style scoped>
@@ -168,19 +185,106 @@ const {
   flex: 1;
   min-width: 0;
 }
-.clickable-badge {
-  cursor: pointer;
-  transition:
-    background-color 0.2s ease,
-    transform 0.1s ease;
-}
-.clickable-badge:hover {
-  background-color: #242424;
-  transform: scale(1.03);
-}
+
 .animate-pop {
   animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
+
+.analyzing-text-spinner {
+  font-size: 0.85rem;
+  color: #b3b3b3;
+  font-weight: 500;
+}
+
+/* Pulse */
+.is-analyzing-pulse {
+  animation: backgroundPulse 1.8s infinite ease-in-out;
+  pointer-events: none;
+}
+
+@keyframes backgroundPulse {
+  0% {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+  50% {
+    background-color: rgba(255, 255, 255, 0.09);
+  }
+  100% {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+}
+
+/* --- Animations --- */
+
+/* ENERGETIC / UPBEAT (Crimson/Orange) */
+.mood-energetic,
+.mood-upbeat,
+.mood-angry {
+  animation: flashEnergetic 0.8s ease-out forwards;
+}
+
+/* HAPPY / JOYFUL / CHEERFUL (Amber/Yellow) */
+.mood-happy,
+.mood-joyful,
+.mood-cheerful,
+.mood-excited {
+  animation: flashHappy 0.8s ease-out forwards;
+}
+
+/* CHILL / MELLOW / CALM (Emerald/Green) */
+.mood-chill,
+.mood-mellow,
+.mood-calm,
+.mood-relaxed {
+  animation: flashChill 0.8s ease-out forwards;
+}
+
+/* SAD / GLOOMY / MELANCHOLY (Blue) */
+.mood-sad,
+.mood-gloomy,
+.mood-melancholic,
+.mood-somber {
+  animation: flashSad 0.8s ease-out forwards;
+}
+
+/* --- Keyframes for color bg --- */
+
+@keyframes flashEnergetic {
+  0% {
+    background-color: rgba(239, 68, 68, 0.7);
+  }
+  100% {
+    background-color: rgba(239, 68, 68, 0.18);
+  } /* Solid dark red tint */
+}
+
+@keyframes flashHappy {
+  0% {
+    background-color: rgba(251, 191, 36, 0.7);
+  }
+  100% {
+    background-color: rgba(251, 191, 36, 0.15);
+  } /* Solid dark gold tint */
+}
+
+@keyframes flashChill {
+  0% {
+    background-color: rgba(16, 185, 129, 0.7);
+  }
+  100% {
+    background-color: rgba(16, 185, 129, 0.15);
+  } /* Solid dark green tint */
+}
+
+@keyframes flashSad {
+  0% {
+    background-color: rgba(59, 130, 246, 0.7);
+  }
+  100% {
+    background-color: rgba(59, 130, 246, 0.18);
+  } /* Solid dark blue tint */
+}
+
 @keyframes popIn {
   0% {
     transform: scale(0);
