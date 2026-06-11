@@ -53,7 +53,7 @@ router.post("/analyze", async (req, res) => {
         },
       );
 
-      // For Legacy classes if new class doesn't work
+      // Fix: For Legacy classes if new class doesn't work
       if (!scrapedLyrics.trim()) {
         $(".lyrics").each((i, el) => {
           let htmlContent = $(el).html() || "";
@@ -175,16 +175,19 @@ router.get("/recommendations", async (req, res) => {
       `[Spotify] Querying catalog tracks matching mood: ${mood} using tag: ${trackSearchQuery}`,
     );
 
-    const spotifySearchRes = await axios.get("https://spotify.com", {
-      params: {
-        q: trackSearchQuery,
-        type: "track",
-        limit: 20,
+    const spotifySearchRes = await axios.get(
+      "[https://api.spotify.com/v1/search](https://api.spotify.com/v1/search)",
+      {
+        params: {
+          q: trackSearchQuery,
+          type: "track",
+          limit: 20,
+        },
+        headers: {
+          Authorization: `Bearer ${dbUser.spotifyAccessToken}`,
+        },
       },
-      headers: {
-        Authorization: `Bearer ${dbUser.spotifyAccessToken}`,
-      },
-    });
+    );
 
     const rawTracks = spotifySearchRes.data?.tracks?.items || [];
 
@@ -208,6 +211,7 @@ router.get("/recommendations", async (req, res) => {
             ? track.artists.map((a) => a.name).join(", ")
             : "Unknown Artist",
           image: albumImage,
+          previewUrl: track.preview_url,
         };
       });
 

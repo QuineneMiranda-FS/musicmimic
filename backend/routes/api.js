@@ -110,6 +110,7 @@ router.get("/search", authenticateJWT, async (req, res, next) => {
         artist: track.artists.map((a) => a.name).join(", "),
         album: track.album.name,
         spotifyUrl: track.external_urls?.spotify || null,
+        previewUrl: track.preview_url || null,
         image:
           track.album.images && track.album.images.length > 0
             ? track.album.images[0].url
