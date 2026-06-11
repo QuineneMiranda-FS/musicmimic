@@ -7,7 +7,7 @@ const { User } = require("../models");
 require("dotenv").config();
 
 const openai = new OpenAI({
-  apiKey: "ollama", // **Note Ollama expects a non-empty string
+  apiKey: "ollama", // **Note Ollama expects a non empty string
   baseURL: "http://localhost:11434/v1",
 });
 
@@ -20,7 +20,7 @@ const getUserIdFromReq = (req) => {
 router.post("/analyze", async (req, res) => {
   const { spotifyId, title, artist } = req.body;
   try {
-    console.log(`[Genius] getting live lyrics for: ${title} - ${artist}`);
+    console.log(`[Genius] getting lyrics for: ${title} - ${artist}`);
 
     const searchUrl = `https://api.genius.com/search?q=${encodeURIComponent(`${title} ${artist}`)}&access_token=${process.env.GENIUS_ACCESS_TOKEN}`;
     const geniusSearch = await axios.get(searchUrl);
@@ -73,7 +73,7 @@ router.post("/analyze", async (req, res) => {
       scrapedLyrics = scrapedLyrics.replace(/You might also like[\s\S]*/gi, "");
       // Normalize Spacing
       scrapedLyrics = scrapedLyrics.replace(/\n{3,}/g, "\n\n").trim();
-      // Final Text Limit ?? Adjust
+      // Final Text Limit ?? Adjust TBD
       if (scrapedLyrics) {
         lyricsText = scrapedLyrics.substring(0, 1500);
       }
@@ -116,7 +116,7 @@ router.post("/analyze", async (req, res) => {
         console.warn(`[AI] ${modelAttempt} failed, checking fallback model...`);
       }
     }
-
+    //MAKE MORE CUZ AI DOESN'T HAVE FEELINGS
     if (!label || !emoji) {
       const localMoodPool = [
         { moodLabel: "Energetic", emoji: "⚡" },
@@ -140,7 +140,7 @@ router.post("/analyze", async (req, res) => {
     });
   } catch (error) {
     console.error("Analysis Error:", error);
-    res.status(500).json({ error: "Failed to process live tracking metrics." });
+    res.status(500).json({ error: "Failed to process." });
   }
 });
 
@@ -156,7 +156,7 @@ router.get("/recommendations", async (req, res) => {
         .status(401)
         .json({ error: "Unauthorized. Missing Spotify token." });
     }
-
+    //MORE HERE TOO
     // Genres & Descriptions of moods
     let trackSearchQuery = "genre:pop chill";
     if (mood === "Melancholic") {
@@ -172,7 +172,7 @@ router.get("/recommendations", async (req, res) => {
     }
 
     console.log(
-      `[Spotify] Querying broad catalog tracks matching mood: ${mood} using tag: ${trackSearchQuery}`,
+      `[Spotify] Querying catalog tracks matching mood: ${mood} using tag: ${trackSearchQuery}`,
     );
 
     const spotifySearchRes = await axios.get("https://spotify.com", {
