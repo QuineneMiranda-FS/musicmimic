@@ -7,21 +7,23 @@ const { User } = require("../models");
 require("dotenv").config();
 
 const openai = new OpenAI({
-  apiKey: "ollama", // **Note Ollama expects a non empty string
+  apiKey: "ollama",
   baseURL: "http://localhost:11434/v1",
 });
 
-// Helper function to extract user ID out of JWT
 const getUserIdFromReq = (req) => {
   return req.user?.userId || 1;
 };
 
-// Live Fetch & Analyze
+// Fetch & Analyze
 router.post("/analyze", async (req, res) => {
   const { spotifyId, title, artist } = req.body;
-  try {
-    console.log(`[Genius] getting lyrics for: ${title} - ${artist}`);
 
+  try {
+    // Grr...Spotify blocks audio endpoint with a 403 for development apps now...
+
+    // Genius Lyrics Scraping
+    console.log(`[Genius] getting lyrics for: ${title} - ${artist}`);
     const searchUrl = `https://api.genius.com/search?q=${encodeURIComponent(`${title} ${artist}`)}&access_token=${process.env.GENIUS_ACCESS_TOKEN}`;
     const geniusSearch = await axios.get(searchUrl);
 
@@ -38,22 +40,18 @@ router.post("/analyze", async (req, res) => {
       const $ = cheerio.load(lyricPage.data);
       let scrapedLyrics = "";
 
-      // Scrapes text where class starts w/ "Lyrics__Container" or uses data attribute
       $('[class^="Lyrics__Container"], [data-lyrics-container="true"]').each(
         (i, el) => {
           let htmlContent = $(el).html();
-          // Convert line break & closing tags into new line
           if (htmlContent) {
             htmlContent = htmlContent.replace(/<br\s*\/?>/gi, "\n");
             htmlContent = htmlContent.replace(/<\/p>|<\/div>/gi, "\n");
-            // Strip out remaining HTML tags so have text only lyrics
             const cleanText = cheerio.load(htmlContent).text();
             scrapedLyrics += cleanText + "\n";
           }
         },
       );
 
-      // Fix: For Legacy classes if new class doesn't work
       if (!scrapedLyrics.trim()) {
         $(".lyrics").each((i, el) => {
           let htmlContent = $(el).html() || "";
@@ -62,72 +60,139 @@ router.post("/analyze", async (req, res) => {
         });
       }
 
-      // Clean headers & footers metadata, contributors, embed etc
       scrapedLyrics = scrapedLyrics.replace(
         /^\d+\s+Contributors?[\s\S]*?(?=Lyrics)/gi,
         "",
       );
-      // Deletes dup title
       scrapedLyrics = scrapedLyrics.replace(/^.*?\bLyrics\b\s*/i, "");
-      // Removes widget text & trailing code/embeds at bottom
       scrapedLyrics = scrapedLyrics.replace(/You might also like[\s\S]*/gi, "");
-      // Normalize Spacing
       scrapedLyrics = scrapedLyrics.replace(/\n{3,}/g, "\n\n").trim();
-      // Final Text Limit ?? Adjust TBD
+
       if (scrapedLyrics) {
         lyricsText = scrapedLyrics.substring(0, 1500);
       }
     }
 
-    // AI Inference
+    // Workaround endpoint - AI for valence/energy analyzing
     const freeModels = ["llama3"];
     let label = null;
     let emoji = null;
 
+    const validMoods = [
+      { mood: "Energetic", emoticon: "⚡" },
+      { mood: "Happy", emoticon: "☀️" },
+      { mood: "Chill", emoticon: "🌊" },
+      { mood: "Melancholic", emoticon: "🌧" },
+      { mood: "Angry", emoticon: "🔥" },
+      { mood: "Romantic", emoticon: "💖" },
+      { mood: "Mysterious", emoticon: "🔮" },
+      { mood: "Ethereal", emoticon: "✨" },
+    ];
+
+    const moodListString = validMoods
+      .map((m) => `${m.mood}/${m.emoticon}`)
+      .join(", ");
+
     for (const modelAttempt of freeModels) {
+      let aiResponse = null;
+
       try {
-        const aiResponse = await openai.chat.completions.create({
+        aiResponse = await openai.chat.completions.create({
           model: modelAttempt,
           response_format: { type: "json_object" },
           messages: [
+            //heh asking AI how to ask AI properly so get better mood analyzing
             {
               role: "system",
-              content:
-                "You analyze lyrics for emotional tone. Return a JSON object with keys 'mood' and 'emoticon'. Values must strictly be one pair from: [Energetic/⚡, Melancholic/🌧, Angry/🔥, Chill/🌊, Romantic/💖].",
+              content: `You are an expert musical analysis engine. Your job is to read a song's metadata and lyrics and assign it a category.
+              
+              CRITICAL: You must return a RAW JSON object ONLY. Do not include any introductory or concluding text, markdown formatting, or explanations.
+              
+              The output must be a valid JSON object with keys 'mood' and 'emoticon'.
+              Values must strictly match one exact pair from this list: [${moodListString}].
+              
+              Evaluation Guidelines:
+              - High intensity, aggressive cadence, heavy genres -> Angry / Energetic
+              - Bright themes, major keys, celebratory/joyous wording -> Happy
+              - Laid-back rhythm, acoustic, ambient, soothing lyrics -> Chill
+              - Somber, slow ballad, heartbreak, grief, loss themes -> Melancholic
+              - Affectionate, love themes, sensual or deeply romantic text -> Romantic
+              - Goth, dark textures, minor-key suspense, obscure lyrics -> Mysterious
+              - Atmospheric, dream-pop soundscapes, abstract/spacey lyrics -> Ethereal`,
             },
             {
               role: "user",
-              content: `Analyze this song: ${title} by ${artist}. Lyrics: ${lyricsText}`,
+              content: `Analyze this track context:
+              Title: "${title}"
+              Artist: "${artist}"
+              
+              Lyrics Context: 
+              ${lyricsText}`,
             },
           ],
         });
 
         if (aiResponse) {
-          let cleanContent = aiResponse.choices.message.content.trim();
+          let cleanContent = aiResponse.choices[0].message.content.trim();
+
+          // Strip markdown
           if (cleanContent.startsWith("```")) {
             cleanContent = cleanContent.replace(/^```json|```$/g, "").trim();
           }
+
+          // JSON Extraction
+          const firstBrace = cleanContent.indexOf("{");
+          const lastBrace = cleanContent.lastIndexOf("}");
+          if (firstBrace !== -1 && lastBrace !== -1) {
+            cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
+          }
+
           const parsed = JSON.parse(cleanContent);
-          label = parsed.mood;
-          emoji = parsed.emoticon ? decodeURIComponent(parsed.emoticon) : null;
-          break;
+
+          const match = validMoods.find(
+            (m) => m.mood.toLowerCase() === parsed.mood?.trim().toLowerCase(),
+          );
+
+          if (match) {
+            label = match.mood;
+            emoji = match.emoticon;
+
+            console.log(
+              `[AI SUCCESS] ${modelAttempt} determined mood for "${title}": ${label} ${emoji}`,
+            );
+            break;
+          } else {
+            console.warn(
+              `[AI BAD DATA] Model returned unmapped mood: "${parsed.mood}"`,
+            );
+          }
         }
       } catch (err) {
-        console.warn(`[AI] ${modelAttempt} failed, checking fallback model...`);
+        console.warn(`[AI Parsing Error]:`, err.message);
+        console.warn(
+          `[AI Raw Output Was]:`,
+          aiResponse?.choices?.[0]?.message?.content ||
+            "No response content gathered.",
+        );
       }
     }
-    //MAKE MORE CUZ AI DOESN'T HAVE FEELINGS
+
+    // Fallback for another possible failure
     if (!label || !emoji) {
-      const localMoodPool = [
-        { moodLabel: "Energetic", emoji: "⚡" },
-        { moodLabel: "Melancholic", emoji: "🌧" },
-        { moodLabel: "Angry", emoji: "🔥" },
-        { moodLabel: "Chill", emoji: "🌊" },
-        { moodLabel: "Romantic", emoji: "💖" },
-      ];
-      const index = title.length % localMoodPool.length;
-      label = localMoodPool[index].moodLabel;
-      emoji = localMoodPool[index].emoji;
+      const index = title.length % validMoods.length;
+      label = validMoods[index].mood;
+      emoji = validMoods[index].emoticon;
+
+      console.log(
+        `[AI FALLBACK] Used local matrix fallback for "${title}": ${label} ${emoji}`,
+      );
+    }
+
+    // Fall fall fall fallback
+    if (!label || !emoji) {
+      const index = title.length % validMoods.length;
+      label = validMoods[index].mood;
+      emoji = validMoods[index].emoticon;
     }
 
     return res.json({
@@ -144,7 +209,7 @@ router.post("/analyze", async (req, res) => {
   }
 });
 
-// Spotify recs
+// Spotify Recs
 router.get("/recommendations", async (req, res) => {
   const { mood } = req.query;
   const userId = getUserIdFromReq(req);
@@ -156,23 +221,31 @@ router.get("/recommendations", async (req, res) => {
         .status(401)
         .json({ error: "Unauthorized. Missing Spotify token." });
     }
-    //MORE HERE TOO
-    // Genres & Descriptions of moods
+
+    // Expanded Mood Categories
     let trackSearchQuery = "genre:pop chill";
-    if (mood === "Melancholic") {
+    const normalMood = mood?.trim().toLowerCase();
+
+    if (normalMood === "melancholic") {
       trackSearchQuery = "genre:ambient sad";
-    } else if (mood === "Energetic") {
-      trackSearchQuery = "genre:edm upbeat";
-    } else if (mood === "Chill") {
-      trackSearchQuery = "genre:lofi chill";
-    } else if (mood === "Angry") {
+    } else if (normalMood === "energetic") {
+      trackSearchQuery = "genre:edm upbeat"; //electronic dance music
+    } else if (normalMood === "happy") {
+      trackSearchQuery = "genre:pop cheerful";
+    } else if (normalMood === "chill") {
+      trackSearchQuery = "genre:lofi chill"; //low fidelity
+    } else if (normalMood === "angry") {
       trackSearchQuery = "genre:rock aggressive";
-    } else if (mood === "Romantic") {
+    } else if (normalMood === "romantic") {
       trackSearchQuery = "genre:r-n-b love";
+    } else if (normalMood === "mysterious") {
+      trackSearchQuery = "genre:goth dark";
+    } else if (normalMood === "ethereal") {
+      trackSearchQuery = "genre:shoegaze dream-pop"; //indie alt rock
     }
 
     console.log(
-      `[Spotify] Querying catalog tracks matching mood: ${mood} using tag: ${trackSearchQuery}`,
+      `[Spotify] Recommendations via: ${trackSearchQuery} for mood: ${mood}`,
     );
 
     const spotifySearchRes = await axios.get(
@@ -183,27 +256,18 @@ router.get("/recommendations", async (req, res) => {
           type: "track",
           limit: 20,
         },
-        headers: {
-          Authorization: `Bearer ${dbUser.spotifyAccessToken}`,
-        },
+        headers: { Authorization: `Bearer ${dbUser.spotifyAccessToken}` },
       },
     );
 
     const rawTracks = spotifySearchRes.data?.tracks?.items || [];
-
-    // Filter objects
     const mappedTracks = rawTracks
       .filter((track) => track && track.id)
       .map((track) => {
         let albumImage = "fallback.jpg";
-        if (
-          track.album &&
-          track.album.images &&
-          track.album.images.length > 0
-        ) {
+        if (track.album?.images?.length > 0) {
           albumImage = track.album.images[0].url;
         }
-
         return {
           spotifyId: track.id,
           title: track.name,
@@ -215,11 +279,9 @@ router.get("/recommendations", async (req, res) => {
         };
       });
 
-    // Shuffle
     const randomizedTracks = mappedTracks
       .sort(() => 0.5 - Math.random())
       .slice(0, 9);
-
     return res.json(randomizedTracks);
   } catch (error) {
     console.error(

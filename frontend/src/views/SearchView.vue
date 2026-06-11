@@ -156,7 +156,7 @@ const handleSearchSubmit = async () => {
   await executeSearch();
 
   if (results.value?.tracks?.length) {
-    // **Don't chg to/use .forEach loop it will cause bottleneck and crash Ollama
+    // **Don't chg to/use .forEach loop it will cause bottleneck and crash Ollama NDS to be sequential
     for (const track of results.value.tracks) {
       // If already analyzed, don't fetch again
       if (track.mood) continue;
@@ -196,7 +196,7 @@ const handleSearchSubmit = async () => {
   font-weight: 500;
 }
 
-/* Pulse */
+/* Pulse - Something to look at while Loading  */
 .is-analyzing-pulse {
   animation: backgroundPulse 1.8s infinite ease-in-out;
   pointer-events: none;
@@ -216,14 +216,18 @@ const handleSearchSubmit = async () => {
 
 /* --- Animations --- */
 
-/* ENERGETIC / UPBEAT (Crimson/Orange) */
+/* ENERGETIC (Crimson) */
 .mood-energetic,
-.mood-upbeat,
-.mood-angry {
+.mood-upbeat {
   animation: flashEnergetic 0.8s ease-out forwards;
 }
 
-/* HAPPY / JOYFUL / CHEERFUL (Amber/Yellow) */
+/* ANGRY (Orange-Red) */
+.mood-angry {
+  animation: flashAngry 0.8s ease-out forwards;
+}
+
+/* HAPPY (Gold/Yellow) */
 .mood-happy,
 .mood-joyful,
 .mood-cheerful,
@@ -231,7 +235,7 @@ const handleSearchSubmit = async () => {
   animation: flashHappy 0.8s ease-out forwards;
 }
 
-/* CHILL / MELLOW / CALM (Emerald/Green) */
+/* CHILL (Emerald/Green) */
 .mood-chill,
 .mood-mellow,
 .mood-calm,
@@ -239,7 +243,7 @@ const handleSearchSubmit = async () => {
   animation: flashChill 0.8s ease-out forwards;
 }
 
-/* SAD / GLOOMY / MELANCHOLY (Blue) */
+/* SAD / MELANCHOLIC (Deep Blue) */
 .mood-sad,
 .mood-gloomy,
 .mood-melancholic,
@@ -247,7 +251,25 @@ const handleSearchSubmit = async () => {
   animation: flashSad 0.8s ease-out forwards;
 }
 
-/* --- Keyframes for color bg --- */
+/* ROMANTIC (Pink/Rose) */
+.mood-romantic,
+.mood-love {
+  animation: flashRomantic 0.8s ease-out forwards;
+}
+
+/* MYSTERIOUS (Deep Purple/Indigo) */
+.mood-mysterious,
+.mood-dark {
+  animation: flashMysterious 0.8s ease-out forwards;
+}
+
+/* ETHEREAL (Cyan/Teal) */
+.mood-ethereal,
+.mood-atmospheric {
+  animation: flashEthereal 0.8s ease-out forwards;
+}
+
+/* --- Keyframes Background Flashes --- */
 
 @keyframes flashEnergetic {
   0% {
@@ -255,34 +277,63 @@ const handleSearchSubmit = async () => {
   }
   100% {
     background-color: rgba(239, 68, 68, 0.18);
-  } /* Solid dark red tint */
+  }
 }
-
+@keyframes flashAngry {
+  0% {
+    background-color: rgba(249, 115, 22, 0.7);
+  }
+  100% {
+    background-color: rgba(249, 115, 22, 0.18);
+  }
+}
 @keyframes flashHappy {
   0% {
     background-color: rgba(251, 191, 36, 0.7);
   }
   100% {
     background-color: rgba(251, 191, 36, 0.15);
-  } /* Solid dark gold tint */
+  }
 }
-
 @keyframes flashChill {
   0% {
     background-color: rgba(16, 185, 129, 0.7);
   }
   100% {
     background-color: rgba(16, 185, 129, 0.15);
-  } /* Solid dark green tint */
+  }
 }
-
 @keyframes flashSad {
   0% {
     background-color: rgba(59, 130, 246, 0.7);
   }
   100% {
     background-color: rgba(59, 130, 246, 0.18);
-  } /* Solid dark blue tint */
+  }
+}
+@keyframes flashRomantic {
+  0% {
+    background-color: rgba(244, 114, 182, 0.7);
+  }
+  100% {
+    background-color: rgba(244, 114, 182, 0.18);
+  }
+}
+@keyframes flashMysterious {
+  0% {
+    background-color: rgba(139, 92, 246, 0.7);
+  }
+  100% {
+    background-color: rgba(139, 92, 246, 0.18);
+  }
+}
+@keyframes flashEthereal {
+  0% {
+    background-color: rgba(45, 212, 191, 0.7);
+  }
+  100% {
+    background-color: rgba(45, 212, 191, 0.18);
+  }
 }
 
 @keyframes popIn {

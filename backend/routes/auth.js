@@ -4,7 +4,7 @@ const querystring = require("querystring");
 const axios = require("axios");
 
 router.get("/login/spotify", (req, res) => {
-  const scopes = "user-read-private user-read-email";
+  const scopes = "user-read-private user-read-email user-library-read";
   const clientId = process.env.SPOTIFY_CLIENT_ID
     ? process.env.SPOTIFY_CLIENT_ID.trim()
     : "";
