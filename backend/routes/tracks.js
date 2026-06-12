@@ -18,9 +18,33 @@ const getUserIdFromReq = (req) => {
 // Fetch & Analyze
 router.post("/analyze", async (req, res) => {
   const { spotifyId, title, artist } = req.body;
+  const userId = getUserIdFromReq(req);
 
   try {
-    // Grr...Spotify blocks audio endpoint with a 403 for development apps now...
+    const dbUser = await User.findByPk(userId);
+    let previewUrl = null;
+    let albumImage = null;
+
+    if (dbUser && dbUser.spotifyAccessToken) {
+      try {
+        const spotifyTrackRes = await axios.get(
+          `https://api.spotify.com/v1/tracks/${spotifyId}`,
+          {
+            headers: { Authorization: `Bearer ${dbUser.spotifyAccessToken}` },
+          },
+        );
+
+        previewUrl = spotifyTrackRes.data?.preview_url || null;
+        if (spotifyTrackRes.data?.album?.images?.length > 0) {
+          albumImage = spotifyTrackRes.data.album.images[0].url;
+        }
+      } catch (spotErr) {
+        console.warn(
+          "[Spotify] Could not fetch track metadata detail:",
+          spotErr.message,
+        );
+      }
+    }
 
     // Genius Lyrics Scraping
     console.log(`[Genius] getting lyrics for: ${title} - ${artist}`);
@@ -73,7 +97,7 @@ router.post("/analyze", async (req, res) => {
       }
     }
 
-    // Workaround endpoint - AI for valence/energy analyzing
+    // AI Mood Analysis
     const freeModels = ["llama3"];
     let label = null;
     let emoji = null;
@@ -95,60 +119,28 @@ router.post("/analyze", async (req, res) => {
 
     for (const modelAttempt of freeModels) {
       let aiResponse = null;
-
       try {
         aiResponse = await openai.chat.completions.create({
           model: modelAttempt,
           response_format: { type: "json_object" },
           messages: [
-            //heh asking AI how to ask AI properly so get better mood analyzing
             {
               role: "system",
-              content: `You are an expert musical analysis engine. Your job is to read a song's metadata and lyrics and assign it a category.
-              
-              CRITICAL: You must return a RAW JSON object ONLY. Do not include any introductory or concluding text, markdown formatting, or explanations.
-              
-              The output must be a valid JSON object with keys 'mood' and 'emoticon'.
-              Values must strictly match one exact pair from this list: [${moodListString}].
-              
-              Evaluation Guidelines:
-              - High intensity, aggressive cadence, heavy genres -> Angry / Energetic
-              - Bright themes, major keys, celebratory/joyous wording -> Happy
-              - Laid-back rhythm, acoustic, ambient, soothing lyrics -> Chill
-              - Somber, slow ballad, heartbreak, grief, loss themes -> Melancholic
-              - Affectionate, love themes, sensual or deeply romantic text -> Romantic
-              - Goth, dark textures, minor-key suspense, obscure lyrics -> Mysterious
-              - Atmospheric, dream-pop soundscapes, abstract/spacey lyrics -> Ethereal`,
+              content: `You are an expert musical analysis engine. The output must be a valid RAW JSON object with keys 'mood' and 'emoticon'. Values must match from: [${moodListString}].`,
             },
             {
               role: "user",
-              content: `Analyze this track context:
-              Title: "${title}"
-              Artist: "${artist}"
-              
-              Lyrics Context: 
-              ${lyricsText}`,
+              content: `Analyze: "${title}" by "${artist}". Lyrics: ${lyricsText}`,
             },
           ],
         });
 
         if (aiResponse) {
           let cleanContent = aiResponse.choices[0].message.content.trim();
-
-          // Strip markdown
           if (cleanContent.startsWith("```")) {
             cleanContent = cleanContent.replace(/^```json|```$/g, "").trim();
           }
-
-          // JSON Extraction
-          const firstBrace = cleanContent.indexOf("{");
-          const lastBrace = cleanContent.lastIndexOf("}");
-          if (firstBrace !== -1 && lastBrace !== -1) {
-            cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
-          }
-
           const parsed = JSON.parse(cleanContent);
-
           const match = validMoods.find(
             (m) => m.mood.toLowerCase() === parsed.mood?.trim().toLowerCase(),
           );
@@ -156,39 +148,14 @@ router.post("/analyze", async (req, res) => {
           if (match) {
             label = match.mood;
             emoji = match.emoticon;
-
-            console.log(
-              `[AI SUCCESS] ${modelAttempt} determined mood for "${title}": ${label} ${emoji}`,
-            );
             break;
-          } else {
-            console.warn(
-              `[AI BAD DATA] Model returned unmapped mood: "${parsed.mood}"`,
-            );
           }
         }
       } catch (err) {
         console.warn(`[AI Parsing Error]:`, err.message);
-        console.warn(
-          `[AI Raw Output Was]:`,
-          aiResponse?.choices?.[0]?.message?.content ||
-            "No response content gathered.",
-        );
       }
     }
 
-    // Fallback for another possible failure
-    if (!label || !emoji) {
-      const index = title.length % validMoods.length;
-      label = validMoods[index].mood;
-      emoji = validMoods[index].emoticon;
-
-      console.log(
-        `[AI FALLBACK] Used local matrix fallback for "${title}": ${label} ${emoji}`,
-      );
-    }
-
-    // Fall fall fall fallback
     if (!label || !emoji) {
       const index = title.length % validMoods.length;
       label = validMoods[index].mood;
@@ -202,6 +169,8 @@ router.post("/analyze", async (req, res) => {
       mood: label,
       emoticon: emoji,
       lyricsText: lyricsText,
+      previewUrl: previewUrl,
+      albumImage: albumImage,
     });
   } catch (error) {
     console.error("Analysis Error:", error);
@@ -209,12 +178,17 @@ router.post("/analyze", async (req, res) => {
   }
 });
 
-// Spotify Recs
+// AI-Generated Recs / Spotify Metadata for track data
 router.get("/recommendations", async (req, res) => {
-  const { mood } = req.query;
+  const { mood, title, artist } = req.query;
   const userId = getUserIdFromReq(req);
 
+  console.log(
+    `[AI Recs] Compiling recommendation list for song "${title}" based on mood: ${mood}`,
+  );
+
   try {
+    // Get the user token again
     const dbUser = await User.findByPk(userId);
     if (!dbUser || !dbUser.spotifyAccessToken) {
       return res
@@ -222,75 +196,103 @@ router.get("/recommendations", async (req, res) => {
         .json({ error: "Unauthorized. Missing Spotify token." });
     }
 
-    // Expanded Mood Categories
-    let trackSearchQuery = "genre:pop chill";
-    const normalMood = mood?.trim().toLowerCase();
+    // AI generate songs
+    const aiResponse = await openai.chat.completions.create({
+      model: "llama3",
+      response_format: { type: "json_object" },
+      messages: [
+        {
+          role: "system",
+          content: `You are a music recommendation engine. Your task is to generate 9 real, well-known songs that perfectly match the requested mood vibe. 
+          
+          CRITICAL: You must return a RAW JSON object ONLY. 
+          The JSON root must have a "tracks" key containing an array of 9 objects.
+          Each object in the array must strictly have these fields:
+          - "title": (The name of the recommended song)
+          - "artist": (The artist name)
+          
+          Example structural shape:
+          {
+            "tracks": [
+              { "title": "Song Name", "artist": "Artist Name" }
+            ]
+          }`,
+        },
+        {
+          role: "user",
+          content: `The user is listening to "${title}" by "${artist}", which has an analyzed mood of "${mood}". Suggest 9 alternative matching tracks.`,
+        },
+      ],
+    });
 
-    if (normalMood === "melancholic") {
-      trackSearchQuery = "genre:ambient sad";
-    } else if (normalMood === "energetic") {
-      trackSearchQuery = "genre:edm upbeat"; //electronic dance music
-    } else if (normalMood === "happy") {
-      trackSearchQuery = "genre:pop cheerful";
-    } else if (normalMood === "chill") {
-      trackSearchQuery = "genre:lofi chill"; //low fidelity
-    } else if (normalMood === "angry") {
-      trackSearchQuery = "genre:rock aggressive";
-    } else if (normalMood === "romantic") {
-      trackSearchQuery = "genre:r-n-b love";
-    } else if (normalMood === "mysterious") {
-      trackSearchQuery = "genre:goth dark";
-    } else if (normalMood === "ethereal") {
-      trackSearchQuery = "genre:shoegaze dream-pop"; //indie alt rock
+    let cleanContent = aiResponse.choices[0].message.content.trim();
+    if (cleanContent.startsWith("```")) {
+      cleanContent = cleanContent.replace(/^```json|```$/g, "").trim();
     }
 
-    console.log(
-      `[Spotify] Recommendations via: ${trackSearchQuery} for mood: ${mood}`,
-    );
+    const parsedData = JSON.parse(cleanContent);
+    const aiTracks = parsedData.tracks || [];
 
-    const spotifySearchRes = await axios.get(
-      "[https://api.spotify.com/v1/search](https://api.spotify.com/v1/search)",
-      {
-        params: {
-          q: trackSearchQuery,
-          type: "track",
-          limit: 20,
-        },
-        headers: { Authorization: `Bearer ${dbUser.spotifyAccessToken}` },
-      },
-    );
+    // Add Spotify Artwork & Song Data
+    const mergedTracks = await Promise.all(
+      aiTracks.map(async (track, index) => {
+        try {
+          // Search Spotify for the AI given track
+          const searchQuery = `${track.title} ${track.artist}`;
+          const spotifySearchRes = await axios.get(
+            "https://api.spotify.com/v1/search",
+            {
+              params: {
+                q: searchQuery,
+                type: "track",
+                limit: 1,
+              },
+              headers: { Authorization: `Bearer ${dbUser.spotifyAccessToken}` },
+            },
+          );
 
-    const rawTracks = spotifySearchRes.data?.tracks?.items || [];
-    const mappedTracks = rawTracks
-      .filter((track) => track && track.id)
-      .map((track) => {
-        let albumImage = "fallback.jpg";
-        if (track.album?.images?.length > 0) {
-          albumImage = track.album.images[0].url;
+          const spotifyTrack = spotifySearchRes.data?.tracks?.items?.[0];
+
+          if (spotifyTrack) {
+            let albumImage = "fallback.jpg";
+            if (spotifyTrack.album?.images?.length > 0) {
+              albumImage = spotifyTrack.album.images[0].url;
+            }
+
+            return {
+              spotifyId: spotifyTrack.id,
+              title: spotifyTrack.name,
+              artist: spotifyTrack.artists
+                ? spotifyTrack.artists.map((a) => a.name).join(", ")
+                : track.artist,
+              image: albumImage,
+              previewUrl: spotifyTrack.preview_url || null,
+            };
+          }
+        } catch (spotErr) {
+          console.warn(
+            `[Spotify Merge Failed] For track "${track.title}":`,
+            spotErr.message,
+          );
         }
-        return {
-          spotifyId: track.id,
-          title: track.name,
-          artist: track.artists
-            ? track.artists.map((a) => a.name).join(", ")
-            : "Unknown Artist",
-          image: albumImage,
-          previewUrl: track.preview_url,
-        };
-      });
 
-    const randomizedTracks = mappedTracks
-      .sort(() => 0.5 - Math.random())
-      .slice(0, 9);
-    return res.json(randomizedTracks);
-  } catch (error) {
-    console.error(
-      "Spotify Mood Track Search Error:",
-      error.response?.data || error.message,
+        // Placeholder Fallback
+        return {
+          spotifyId: `ai-fallback-${index}-${Date.now()}`,
+          title: track.title,
+          artist: track.artist,
+          image: "fallback.jpg",
+          previewUrl: null,
+        };
+      }),
     );
+
+    return res.json(mergedTracks);
+  } catch (error) {
+    console.error("AI Recommendation Generation Error:", error.message);
     return res
       .status(500)
-      .json({ error: "Failed to pull live metrics from Spotify API." });
+      .json({ error: "Failed to generate AI recommendations." });
   }
 });
 

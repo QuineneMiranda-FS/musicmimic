@@ -26,7 +26,7 @@
 
           <a
             v-if="trackId"
-            :href="`https://open.spotify.com/track/${trackId}`"
+            :href="`https://open.spotify.com/track/$$${trackId}`"
             target="_blank"
             rel="noopener noreferrer"
             class="spotify-link-btn"
@@ -55,11 +55,11 @@
     </div>
 
     <footer class="details-recommendations-section">
-      <h2>✨ Recommended Songs via Spotify Mix</h2>
+      <h2>✨ AI Recommended Songs</h2>
 
       <div v-if="isLoadingRecs" class="details-status-msg">
         <span class="loading-spinner"></span>
-        <p>Connecting to Spotify Web API ...</p>
+        <p>Consulting AI ...</p>
       </div>
 
       <div v-else class="rec-grid-shelf">
@@ -73,7 +73,7 @@
               title: rec.title,
               artist: rec.artist,
               image: rec.image,
-              preview_url: rec.previewUrl,
+              previewUrl: rec.previewUrl,
               mood: mood,
               emoticon: emoticon,
             },

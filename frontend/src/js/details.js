@@ -8,7 +8,8 @@ export function useDetailsLogic(route) {
   const mood = ref(route.query.mood);
   const emoticon = ref(route.query.emoticon);
   const albumImage = ref(route.query.image);
-  const previewUrl = ref(route.query.preview_url || null);
+
+  const previewUrl = ref(route.query.previewUrl || null);
 
   const lyrics = ref("Getting Genius Live Data...");
   const recommendations = ref([]);
@@ -17,8 +18,9 @@ export function useDetailsLogic(route) {
   const loadPageData = async () => {
     if (!trackId.value) return;
     isLoadingRecs.value = true;
+    lyrics.value = "Getting Genius Live Data...";
 
-    // Fetch Lyrics and Mood from Backend
+    // Lyrics & Mood fm Backend
     try {
       const analyzeRes = await axios.post(
         "http://localhost:3000/api/tracks/analyze",
@@ -30,17 +32,19 @@ export function useDetailsLogic(route) {
       );
       lyrics.value = analyzeRes.data.lyricsText;
 
-      // Update local values
+      // Update after analyzed
       if (analyzeRes.data.mood) mood.value = analyzeRes.data.mood;
       if (analyzeRes.data.emoticon) emoticon.value = analyzeRes.data.emoticon;
       if (analyzeRes.data.previewUrl)
         previewUrl.value = analyzeRes.data.previewUrl;
+      if (analyzeRes.data.albumImage)
+        albumImage.value = analyzeRes.data.albumImage;
     } catch (err) {
       console.error("Genius Scraping Error:", err);
       lyrics.value = "Failed to sync song profile elements.";
     }
 
-    // Fetch Spotify Recommendations from Backend
+    // AI Recs
     try {
       const token = localStorage.getItem("app_jwt");
       const recsRes = await axios.get(
@@ -48,6 +52,8 @@ export function useDetailsLogic(route) {
         {
           params: {
             mood: mood.value,
+            title: title.value,
+            artist: artist.value,
           },
           headers: {
             Authorization: `Bearer ${token}`,
@@ -57,14 +63,14 @@ export function useDetailsLogic(route) {
 
       recommendations.value = recsRes.data;
     } catch (err) {
-      console.error("Spotify Recommendations Subpage Error:", err);
+      console.error("AI Recommendations Subpage Error:", err);
       recommendations.value = [];
     } finally {
       isLoadingRecs.value = false;
     }
   };
 
-  // Watch for parameter chgs on links
+  // Watch for parameter changes on clicks
   watch(
     () => route.query.id,
     (newId) => {
@@ -75,7 +81,8 @@ export function useDetailsLogic(route) {
       mood.value = route.query.mood;
       emoticon.value = route.query.emoticon;
       albumImage.value = route.query.image;
-      previewUrl.value = route.query.preview_url || null;
+      previewUrl.value = route.query.previewUrl || null;
+
       loadPageData();
     },
   );
