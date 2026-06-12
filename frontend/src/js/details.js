@@ -32,16 +32,21 @@ export function useDetailsLogic(route) {
       );
       lyrics.value = analyzeRes.data.lyricsText;
 
-      // Update after analyzed
-      if (analyzeRes.data.mood) mood.value = analyzeRes.data.mood;
-      if (analyzeRes.data.emoticon) emoticon.value = analyzeRes.data.emoticon;
+      // Only override if no mood already
+      if (!mood.value && analyzeRes.data.mood) {
+        mood.value = analyzeRes.data.mood;
+      }
+      if (!emoticon.value && analyzeRes.data.emoticon) {
+        emoticon.value = analyzeRes.data.emoticon;
+      }
+
       if (analyzeRes.data.previewUrl)
         previewUrl.value = analyzeRes.data.previewUrl;
       if (analyzeRes.data.albumImage)
         albumImage.value = analyzeRes.data.albumImage;
     } catch (err) {
       console.error("Genius Scraping Error:", err);
-      lyrics.value = "Failed to sync song profile elements.";
+      lyrics.value = "Failed to sync song profile.";
     }
 
     // AI Recs

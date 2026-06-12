@@ -14,24 +14,36 @@
         </div>
 
         <div class="player-container">
-          <div v-if="previewUrl" class="audio-wrapper">
-            <span class="player-label">Listen to Snippet:</span>
-            <audio controls :src="previewUrl" class="snippet-player">
-              Your browser does not support the audio snippet player.
-            </audio>
+          <div v-if="trackId" class="audio-wrapper">
+            <iframe
+              style="border-radius: 12px"
+              :src="`https://open.spotify.com/embed/track/${trackId}?utm_source=generator`"
+              width="100%"
+              height="152"
+              frameBorder="0"
+              allowfullscreen=""
+              allow="
+                autoplay;
+                clipboard-write;
+                encrypted-media;
+                fullscreen;
+                picture-in-picture;
+              "
+              loading="lazy"
+            ></iframe>
           </div>
           <div v-else class="no-preview-msg">
-            <span>Audio snippet unavailable for this track</span>
+            <span>Player unavailable for this track</span>
           </div>
 
           <a
             v-if="trackId"
-            :href="`https://open.spotify.com/track/$$${trackId}`"
+            :href="`https://open.spotify.com/track/${trackId}`"
             target="_blank"
             rel="noopener noreferrer"
             class="spotify-link-btn"
           >
-            <span class="spotify-icon"></span> Play Full Song on Spotify
+            <span class="spotify-icon"></span> Open Full Song in Spotify App
           </a>
         </div>
       </aside>
@@ -55,7 +67,10 @@
     </div>
 
     <footer class="details-recommendations-section">
-      <h2>✨ AI Recommended Songs</h2>
+      <h2>
+        ✨ Check these out, you can continue being
+        <span class="mood-pulse-text">{{ mood }}</span>
+      </h2>
 
       <div v-if="isLoadingRecs" class="details-status-msg">
         <span class="loading-spinner"></span>
@@ -74,8 +89,8 @@
               artist: rec.artist,
               image: rec.image,
               previewUrl: rec.previewUrl,
-              mood: mood,
-              emoticon: emoticon,
+              mood: rec.mood || mood,
+              emoticon: rec.emoticon || emoticon,
             },
           }"
           class="rec-mini-card"
@@ -99,7 +114,7 @@ const route = useRoute();
 const router = useRouter();
 
 const goBack = () => {
-  router.back();
+  router.push({ path: "/search" });
 };
 
 const {
@@ -115,3 +130,30 @@ const {
   isLoadingRecs,
 } = useDetailsLogic(route);
 </script>
+<style scoped>
+@import "../styles/main.css";
+
+/* Component Specific Styles - do not move! */
+.mood-pulse-text {
+  display: inline-block;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  animation: moodGlowPulse 2s infinite ease-in-out;
+}
+
+@keyframes moodGlowPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.05);
+    text-shadow: 0 0 12px rgba(29, 185, 84, 0.6);
+    opacity: 1;
+  }
+}
+</style>
