@@ -21,7 +21,7 @@
             </audio>
           </div>
           <div v-else class="no-preview-msg">
-            <span>Preview snippet unavailable for this track</span>
+            <span>Audio snippet unavailable for this track</span>
           </div>
 
           <a
