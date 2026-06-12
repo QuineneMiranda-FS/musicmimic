@@ -91,7 +91,6 @@
                         <span class="mood-emoticon animate-pop">{{
                           track.emoticon
                         }}</span>
-                        <span class="mood-label-subtext">{{ track.mood }}</span>
                       </div>
                       <span
                         v-else-if="track.isAnalyzing"
@@ -164,6 +163,33 @@
                 </a>
               </div>
               <p v-else class="empty-column-msg">No artist results found.</p>
+            </div>
+          </div>
+
+          <div class="mood-legend-box text-left-adjusted">
+            <h4>Vibe Key</h4>
+            <div class="legend-grid row-layout-adjusted">
+              <div class="legend-item">
+                <span class="text-color-chill">🌊</span> Chill
+              </div>
+              <div class="legend-item">
+                <span class="text-color-energetic">🔥</span> Energetic
+              </div>
+              <div class="legend-item">
+                <span class="text-color-happy">☀️</span> Happy
+              </div>
+              <div class="legend-item">
+                <span class="text-color-sad">🌧️</span> Melancholic
+              </div>
+              <div class="legend-item">
+                <span class="text-color-romantic">💖</span> Romantic
+              </div>
+              <div class="legend-item">
+                <span class="text-color-mysterious">🔮</span> Mysterious
+              </div>
+              <div class="legend-item">
+                <span class="text-color-ethereal">✨</span> Ethereal
+              </div>
             </div>
           </div>
         </section>
@@ -382,7 +408,6 @@ const {
 
 const handleTrackClick = (track) => {
   if (!isSpyingStopped.value) {
-    // Get Spotify Data first
     clickedMoodsHistory.value.push({
       id: track.id || Date.now().toString(),
       name: track.name || "Unknown Title",
@@ -401,7 +426,6 @@ const handleTrackClick = (track) => {
   goToSongDetailsPage(track);
 };
 
-// Show most recent history first
 const reversedHistory = computed(() => {
   return [...clickedMoodsHistory.value].reverse();
 });
@@ -423,7 +447,6 @@ const restoreMoodRingFeature = () => {
   localStorage.setItem("mimic_privacy_shield", "false");
 };
 
-// Helper for trends history
 const getAggregateMood = (sourceArray) => {
   if (!sourceArray || !sourceArray.length) return null;
 
@@ -451,7 +474,6 @@ const getAggregateMood = (sourceArray) => {
   };
 };
 
-// Daily Aggregate (Last 24 Hours)
 const dominantMood = computed(() => {
   const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
   const dailyTracks = clickedMoodsHistory.value.filter(
@@ -460,7 +482,6 @@ const dominantMood = computed(() => {
   return getAggregateMood(dailyTracks);
 });
 
-// Weekly Aggregate (Last 7 Days)
 const weeklyMood = computed(() => {
   if (!clickedMoodsHistory.value.length) return null;
   const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -470,7 +491,6 @@ const weeklyMood = computed(() => {
   return getAggregateMood(weeklyTracks);
 });
 
-// Monthly Aggregate (Last 30 Days)
 const monthlyMood = computed(() => {
   if (!clickedMoodsHistory.value.length) return null;
   const oneMonthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
@@ -480,7 +500,6 @@ const monthlyMood = computed(() => {
   return getAggregateMood(monthlyTracks);
 });
 
-// Current Mood Ring
 const currentSelectedMood = computed(() => {
   if (activeRingTab.value === "weekly") return weeklyMood.value;
   if (activeRingTab.value === "monthly") return monthlyMood.value;
@@ -498,7 +517,7 @@ const moodOppositesMap = {
   angry: { label: "Peaceful", query: "Chill peaceful acoustic meditative" },
   romantic: { label: "Mysterious", query: "Dark mysterious gothic" },
   mysterious: { label: "Romantic", query: "Romantic bright pop" },
-  ethereal: { label: "Aggressive", query: "Aggressive heavy industrial metal" },
+  ethereal: { label: "Grounded", query: "Aggressive heavy industrial metal" },
 };
 
 const oppositeMoodButtonText = computed(() => {
@@ -535,7 +554,6 @@ const handleSearchSubmit = async () => {
   }
 };
 
-// Filter tracks
 const filteredTracks = computed(() => {
   if (!results.value || !results.value.tracks) return [];
   if (!selectedMoodFilter.value) return results.value.tracks;
@@ -545,15 +563,12 @@ const filteredTracks = computed(() => {
   );
 });
 
-// Toggle Filter or Opposite
 const triggerAlternativeSearch = async (type) => {
   if (!currentSelectedMood.value) return;
 
   if (type === "same") {
-    // Client Side Filter
     selectedMoodFilter.value = currentSelectedMood.value.id;
   } else {
-    // New Search Loader
     selectedMoodFilter.value = null;
     isRingSearching.value = true;
 
@@ -581,7 +596,6 @@ const triggerAlternativeSearch = async (type) => {
   width: 100%;
 }
 
-/* Song Grid */
 .column-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -600,7 +614,6 @@ const triggerAlternativeSearch = async (type) => {
   transform: translateY(-2px);
 }
 
-/* History Row */
 .history-full-row-panel {
   grid-column: 1 / -1;
   width: 100%;
@@ -1124,5 +1137,57 @@ const triggerAlternativeSearch = async (type) => {
     transform: scale(1) rotate(360deg);
     opacity: 0.7;
   }
+}
+
+/* Mood Legend Box Styles */
+.mood-legend-box {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--border);
+  width: 100%;
+}
+
+.mood-legend-box.text-left-adjusted {
+  text-align: left;
+  padding-left: 4px;
+}
+
+.mood-legend-box h4 {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.mood-legend-box.text-left-adjusted h4 {
+  text-align: left;
+}
+
+.legend-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 12px;
+  padding: 0 8px;
+}
+
+.legend-grid.row-layout-adjusted {
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  padding: 0;
+}
+
+.legend-item {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend-item span {
+  font-size: 1rem;
+  line-height: 1;
 }
 </style>
