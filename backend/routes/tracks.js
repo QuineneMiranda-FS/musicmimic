@@ -51,7 +51,11 @@ router.post("/analyze", async (req, res) => {
     const searchUrl = `https://api.genius.com/search?q=${encodeURIComponent(`${title} ${artist}`)}&access_token=${process.env.GENIUS_ACCESS_TOKEN}`;
     const geniusSearch = await axios.get(searchUrl);
 
-    const lyricPath = geniusSearch.data?.response?.hits?.[0]?.result?.path;
+    // Capture the primary hits from Genius
+    const geniusHit = geniusSearch.data?.response?.hits?.[0]?.result;
+    const lyricPath = geniusHit?.path;
+    const geniusUrl = geniusHit?.url || null;
+
     let lyricsText = "No lyrics found on Genius for this track.";
 
     if (lyricPath) {
@@ -62,6 +66,13 @@ router.post("/analyze", async (req, res) => {
         },
       });
       const $ = cheerio.load(lyricPage.data);
+
+      // Scrap sidebar and blurbs
+      $(".SongDescription__Content").remove();
+      $(".HeaderBio__Description").remove();
+      $('button[class*="ReadMore"]').remove();
+      $('a[class*="ReadMore"]').remove();
+
       let scrapedLyrics = "";
 
       $('[class^="Lyrics__Container"], [data-lyrics-container="true"]').each(
@@ -90,6 +101,9 @@ router.post("/analyze", async (req, res) => {
       );
       scrapedLyrics = scrapedLyrics.replace(/^.*?\bLyrics\b\s*/i, "");
       scrapedLyrics = scrapedLyrics.replace(/You might also like[\s\S]*/gi, "");
+
+      // Scrap Read More etc
+      scrapedLyrics = scrapedLyrics.replace(/Read\s*More/gi, "");
       scrapedLyrics = scrapedLyrics.replace(/\n{3,}/g, "\n\n").trim();
 
       if (scrapedLyrics) {
@@ -169,6 +183,7 @@ router.post("/analyze", async (req, res) => {
       mood: label,
       emoticon: emoji,
       lyricsText: lyricsText,
+      geniusUrl: geniusUrl,
       previewUrl: previewUrl,
       albumImage: albumImage,
     });
@@ -188,7 +203,6 @@ router.get("/recommendations", async (req, res) => {
   );
 
   try {
-    // Get the user token again
     const dbUser = await User.findByPk(userId);
     if (!dbUser || !dbUser.spotifyAccessToken) {
       return res
@@ -196,7 +210,6 @@ router.get("/recommendations", async (req, res) => {
         .json({ error: "Unauthorized. Missing Spotify token." });
     }
 
-    // AI generate songs
     const aiResponse = await openai.chat.completions.create({
       model: "llama3",
       response_format: { type: "json_object" },
@@ -233,11 +246,9 @@ router.get("/recommendations", async (req, res) => {
     const parsedData = JSON.parse(cleanContent);
     const aiTracks = parsedData.tracks || [];
 
-    // Add Spotify Artwork & Song Data
     const mergedTracks = await Promise.all(
       aiTracks.map(async (track, index) => {
         try {
-          // Search Spotify for the AI given track
           const searchQuery = `${track.title} ${track.artist}`;
           const spotifySearchRes = await axios.get(
             "https://api.spotify.com/v1/search",
@@ -276,7 +287,6 @@ router.get("/recommendations", async (req, res) => {
           );
         }
 
-        // Placeholder Fallback
         return {
           spotifyId: `ai-fallback-${index}-${Date.now()}`,
           title: track.title,

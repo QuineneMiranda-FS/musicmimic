@@ -66,7 +66,7 @@ export function useSearchLogic() {
       track.mood = response.data.mood;
       track.emoticon = response.data.emoticon;
     } catch (error) {
-      console.error("Error running local Ollama inference:", error);
+      console.error("Error running local Ollama:", error);
       alert("Could not process this track's mood.");
     } finally {
       loadingTrackId.value = null;

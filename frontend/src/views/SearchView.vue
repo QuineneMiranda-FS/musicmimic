@@ -60,13 +60,21 @@
           <div class="tab-content-window">
             <div v-if="activeTab === 'tracks'">
               <div
-                v-if="results.tracks && results.tracks.length"
-                class="column-stack"
+                v-if="isRingSearching"
+                class="column-status-loader animate-fade-in"
+              >
+                <span class="analyzing-text-spinner large-spinner">⚡</span>
+                <p>Flipping the vibe... Consulting AI for alternatives...</p>
+              </div>
+
+              <div
+                v-else-if="results.tracks && results.tracks.length"
+                class="column-grid"
               >
                 <div
-                  v-for="track in results.tracks"
+                  v-for="track in filteredTracks"
                   :key="track.id"
-                  class="card track-card"
+                  class="card track-card search-result-card"
                   :class="[
                     track.mood ? `mood-${track.mood.trim().toLowerCase()}` : '',
                     { 'is-analyzing-pulse': track.isAnalyzing },
@@ -102,7 +110,7 @@
             <div v-if="activeTab === 'albums'">
               <div
                 v-if="results.albums && results.albums.length"
-                class="column-stack"
+                class="column-grid"
               >
                 <a
                   v-for="album in results.albums"
@@ -110,7 +118,7 @@
                   :href="album.spotifyUrl"
                   target="_blank"
                   rel="noopener"
-                  class="card card-link"
+                  class="card card-link search-result-card"
                 >
                   <div class="img-container">
                     <img
@@ -130,7 +138,7 @@
             <div v-if="activeTab === 'artists'">
               <div
                 v-if="results.artists && results.artists.length"
-                class="column-stack"
+                class="column-grid"
               >
                 <a
                   v-for="artist in results.artists"
@@ -138,7 +146,7 @@
                   :href="artist.spotifyUrl"
                   target="_blank"
                   rel="noopener"
-                  class="card card-link"
+                  class="card card-link search-result-card"
                 >
                   <div class="img-container">
                     <img
@@ -195,9 +203,31 @@
           </div>
 
           <div v-else class="mood-ring-box-wrapper animate-fade-in">
-            <h2>Daily Mood Ring</h2>
+            <div class="tabs-header-row sidebar-tabs-header">
+              <button
+                class="tab-nav-btn sidebar-tab-btn"
+                :class="{ 'is-active': activeRingTab === 'daily' }"
+                @click="activeRingTab = 'daily'"
+              >
+                Daily
+              </button>
+              <button
+                class="tab-nav-btn sidebar-tab-btn"
+                :class="{ 'is-active': activeRingTab === 'weekly' }"
+                @click="activeRingTab = 'weekly'"
+              >
+                Weekly
+              </button>
+              <button
+                class="tab-nav-btn sidebar-tab-btn"
+                :class="{ 'is-active': activeRingTab === 'monthly' }"
+                @click="activeRingTab = 'monthly'"
+              >
+                Monthly
+              </button>
+            </div>
 
-            <template v-if="!dominantMood">
+            <template v-if="!currentSelectedMood">
               <div class="mood-ring-orb-container">
                 <div class="mood-ring-outer-halo ring-halo-empty">
                   <div class="mood-ring-inner-core">
@@ -208,7 +238,8 @@
 
               <div class="mood-ring-interactive-dialogue">
                 <p class="mood-statement-text">
-                  Pick some songs and I'll figure out your mood!
+                  Pick some songs and I'll figure out your
+                  {{ activeRingTab }} mood!
                 </p>
               </div>
             </template>
@@ -217,11 +248,11 @@
               <div class="mood-ring-orb-container">
                 <div
                   class="mood-ring-outer-halo"
-                  :class="`ring-halo-${dominantMood.id}`"
+                  :class="`ring-halo-${currentSelectedMood.id}`"
                 >
                   <div class="mood-ring-inner-core">
                     <span class="mood-ring-emoji-avatar">{{
-                      dominantMood.emoticon
+                      currentSelectedMood.emoticon
                     }}</span>
                   </div>
                 </div>
@@ -229,13 +260,14 @@
 
               <div class="mood-ring-interactive-dialogue">
                 <p class="mood-statement-text">
-                  Based on your choices, you seem rather
+                  Based on recent choices, your
+                  <span class="timeframe-label">{{ activeRingTab }}</span> vibe
+                  is rather
                   <span
                     class="highlighted-mood-span"
-                    :class="`text-color-${dominantMood.id}`"
-                    >{{ dominantMood.label }}</span
-                  >
-                  today.
+                    :class="`text-color-${currentSelectedMood.id}`"
+                    >{{ currentSelectedMood.label }}</span
+                  >.
                 </p>
 
                 <div class="mood-ring-cta-block">
@@ -245,7 +277,7 @@
                       @click="triggerAlternativeSearch('same')"
                       class="ring-vibe-btn action-match-btn"
                     >
-                      More {{ dominantMood.label }} Songs
+                      More {{ currentSelectedMood.label }} Songs
                     </button>
                     <button
                       @click="triggerAlternativeSearch('opposite')"
@@ -268,6 +300,45 @@
             </template>
           </div>
         </section>
+
+        <section
+          v-if="!isSpyingStopped && clickedMoodsHistory.length"
+          class="column-panel history-full-row-panel animate-fade-in"
+        >
+          <div class="history-section-header">
+            <h2>I Know You Looked At These Songs...</h2>
+            <button
+              @click="clearOnlyVisualHistory"
+              class="clear-history-action-btn"
+            >
+              Clear List
+            </button>
+          </div>
+          <div class="history-grid-row">
+            <div
+              v-for="(track, index) in reversedHistory"
+              :key="track.id + '-' + index"
+              class="card track-card history-mini-card"
+              :class="
+                track.mood ? `mood-${track.mood.trim().toLowerCase()}` : ''
+              "
+              @click="goToSongDetailsPage(track)"
+            >
+              <div class="img-container">
+                <img :src="track.image || 'fallback.jpg'" alt="Album Art" />
+              </div>
+              <div class="info">
+                <div class="track-header">
+                  <h3>{{ track.name }}</h3>
+                  <div class="mood-display-block">
+                    <span class="mood-emoticon">{{ track.emoticon }}</span>
+                  </div>
+                </div>
+                <p>{{ track.artist }}</p>
+              </div>
+            </div>
+          </div>
+        </section>
       </div>
     </main>
   </div>
@@ -278,8 +349,11 @@ import { ref, computed, nextTick, onMounted } from "vue";
 import { useSearchLogic } from "../js/search.js";
 
 const activeTab = ref("tracks");
+const activeRingTab = ref("daily");
+const selectedMoodFilter = ref(null);
 const clickedMoodsHistory = ref([]);
 const isSpyingStopped = ref(false);
+const isRingSearching = ref(false);
 
 onMounted(() => {
   const savedHistory = localStorage.getItem("mimic_daily_mood_clicks");
@@ -291,7 +365,6 @@ onMounted(() => {
     }
   }
 
-  // Spy Toggle
   if (localStorage.getItem("mimic_privacy_shield") === "true") {
     isSpyingStopped.value = true;
   }
@@ -308,17 +381,34 @@ const {
 } = useSearchLogic();
 
 const handleTrackClick = (track) => {
-  if (!isSpyingStopped.value && track.mood && track.emoticon) {
+  if (!isSpyingStopped.value) {
+    // Get Spotify Data first
     clickedMoodsHistory.value.push({
-      mood: track.mood,
-      emoticon: track.emoticon,
+      id: track.id || Date.now().toString(),
+      name: track.name || "Unknown Title",
+      artist: track.artist || "Unknown Artist",
+      image: track.image || "fallback.jpg",
+      mood: track.mood || null,
+      emoticon: track.emoticon || "🎵",
+      timestamp: Date.now(),
     });
+
     localStorage.setItem(
       "mimic_daily_mood_clicks",
       JSON.stringify(clickedMoodsHistory.value),
     );
   }
   goToSongDetailsPage(track);
+};
+
+// Show most recent history first
+const reversedHistory = computed(() => {
+  return [...clickedMoodsHistory.value].reverse();
+});
+
+const clearOnlyVisualHistory = () => {
+  clickedMoodsHistory.value = [];
+  localStorage.removeItem("mimic_daily_mood_clicks");
 };
 
 const purgeClickHistory = () => {
@@ -333,14 +423,10 @@ const restoreMoodRingFeature = () => {
   localStorage.setItem("mimic_privacy_shield", "false");
 };
 
-const dominantMood = computed(() => {
-  const sourceArray = clickedMoodsHistory.value;
+// Helper for trends history
+const getAggregateMood = (sourceArray) => {
+  if (!sourceArray || !sourceArray.length) return null;
 
-  if (!sourceArray || !sourceArray.length) {
-    return null;
-  }
-
-  // Count instances
   const counts = {};
   sourceArray.forEach((item) => {
     if (item.mood) {
@@ -349,7 +435,6 @@ const dominantMood = computed(() => {
     }
   });
 
-  // Pick highest count
   const topMoodKey = Object.keys(counts).reduce(
     (a, b) => (counts[a] > counts[b] ? a : b),
     "",
@@ -364,6 +449,42 @@ const dominantMood = computed(() => {
     label: matchingItem?.mood || "Chill",
     emoticon: matchingItem?.emoticon || "🌊",
   };
+};
+
+// Daily Aggregate (Last 24 Hours)
+const dominantMood = computed(() => {
+  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  const dailyTracks = clickedMoodsHistory.value.filter(
+    (item) => !item.timestamp || item.timestamp >= oneDayAgo,
+  );
+  return getAggregateMood(dailyTracks);
+});
+
+// Weekly Aggregate (Last 7 Days)
+const weeklyMood = computed(() => {
+  if (!clickedMoodsHistory.value.length) return null;
+  const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const weeklyTracks = clickedMoodsHistory.value.filter(
+    (item) => !item.timestamp || item.timestamp >= oneWeekAgo,
+  );
+  return getAggregateMood(weeklyTracks);
+});
+
+// Monthly Aggregate (Last 30 Days)
+const monthlyMood = computed(() => {
+  if (!clickedMoodsHistory.value.length) return null;
+  const oneMonthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+  const monthlyTracks = clickedMoodsHistory.value.filter(
+    (item) => !item.timestamp || item.timestamp >= oneMonthAgo,
+  );
+  return getAggregateMood(monthlyTracks);
+});
+
+// Current Mood Ring
+const currentSelectedMood = computed(() => {
+  if (activeRingTab.value === "weekly") return weeklyMood.value;
+  if (activeRingTab.value === "monthly") return monthlyMood.value;
+  return dominantMood.value;
 });
 
 const moodOppositesMap = {
@@ -381,17 +502,17 @@ const moodOppositesMap = {
 };
 
 const oppositeMoodButtonText = computed(() => {
-  if (!dominantMood.value) return "I'd rather be Alternative";
-  const currentId = dominantMood.value.id;
+  if (!currentSelectedMood.value) return "I'd rather be Alternative";
+  const currentId = currentSelectedMood.value.id;
   const oppositeData = moodOppositesMap[currentId];
   return oppositeData
     ? `I'd rather be ${oppositeData.label}`
     : "I'd rather be Alternative";
 });
 
-// Keep tracking
 const handleSearchSubmit = async () => {
   try {
+    selectedMoodFilter.value = null;
     await executeSearch();
     await nextTick();
 
@@ -414,16 +535,38 @@ const handleSearchSubmit = async () => {
   }
 };
 
+// Filter tracks
+const filteredTracks = computed(() => {
+  if (!results.value || !results.value.tracks) return [];
+  if (!selectedMoodFilter.value) return results.value.tracks;
+
+  return results.value.tracks.filter(
+    (track) => track.mood?.trim().toLowerCase() === selectedMoodFilter.value,
+  );
+});
+
+// Toggle Filter or Opposite
 const triggerAlternativeSearch = async (type) => {
-  if (!dominantMood.value) return;
+  if (!currentSelectedMood.value) return;
+
   if (type === "same") {
-    searchQuery.value = `${dominantMood.value.label} music vibe`;
+    // Client Side Filter
+    selectedMoodFilter.value = currentSelectedMood.value.id;
   } else {
-    const currentId = dominantMood.value.id;
+    // New Search Loader
+    selectedMoodFilter.value = null;
+    isRingSearching.value = true;
+
+    const currentId = currentSelectedMood.value.id;
     searchQuery.value =
       moodOppositesMap[currentId]?.query || "new alternative music";
+
+    try {
+      await handleSearchSubmit();
+    } finally {
+      isRingSearching.value = false;
+    }
   }
-  await handleSearchSubmit();
 };
 </script>
 
@@ -438,12 +581,90 @@ const triggerAlternativeSearch = async (type) => {
   width: 100%;
 }
 
+/* Song Grid */
+.column-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+.search-result-card {
+  margin: 0;
+  width: 100%;
+  transition:
+    transform 0.2s,
+    border-color 0.2s;
+}
+
+.search-result-card:hover {
+  transform: translateY(-2px);
+}
+
+/* History Row */
+.history-full-row-panel {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin-top: 20px;
+}
+
+.history-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.clear-history-action-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clear-history-action-btn:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.history-grid-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.history-mini-card {
+  margin: 0;
+  transition:
+    transform 0.2s,
+    border-color 0.2s;
+}
+
+.history-mini-card:hover {
+  transform: translateY(-2px);
+}
+
 .tabs-header-row {
   display: flex;
   gap: 8px;
   border-bottom: 1px solid var(--border);
   padding-bottom: 12px;
   margin-bottom: 20px;
+  width: 100%;
+}
+
+.sidebar-tabs-header {
+  margin-bottom: 24px;
+  justify-content: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .tab-nav-btn {
@@ -456,6 +677,11 @@ const triggerAlternativeSearch = async (type) => {
   cursor: pointer;
   border-radius: 4px;
   transition: all 0.2s ease;
+}
+
+.sidebar-tab-btn {
+  font-size: 0.9rem;
+  padding: 4px 12px;
 }
 
 .tab-nav-btn:hover {
@@ -472,7 +698,7 @@ const triggerAlternativeSearch = async (type) => {
   background-color: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 32px 24px;
+  padding: 24px 20px 32px 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -517,6 +743,11 @@ const triggerAlternativeSearch = async (type) => {
   font-weight: 600;
   margin-bottom: 24px;
   line-height: 1.4;
+}
+
+.timeframe-label {
+  text-transform: lowercase;
+  color: var(--text-muted);
 }
 
 .privacy-notice-text {
@@ -860,6 +1091,38 @@ const triggerAlternativeSearch = async (type) => {
 @media (max-width: 900px) {
   .dashboard-columns-revamped {
     grid-template-columns: 1fr;
+  }
+}
+.column-status-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-muted);
+  font-weight: 600;
+  gap: 16px;
+}
+
+.large-spinner {
+  font-size: 2.5rem;
+  animation: spinPulse 1.5s infinite linear;
+  display: inline-block;
+}
+
+@keyframes spinPulse {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+    opacity: 0.7;
   }
 }
 </style>
