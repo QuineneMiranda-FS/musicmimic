@@ -30,7 +30,13 @@ function parseAIJsonResponse(content) {
 
 async function analyzeTrackMood(title, artist, lyricsText) {
   const baselineMoodNames = defaultMoodMatrix.map((m) => m.mood);
-  const baselineOptions = defaultMoodMatrix.map((m) => `${m.mood} ${m.emoticon}`).join(", ");
+  const baselineOptions = defaultMoodMatrix
+    .map((m) => `${m.mood} ${m.emoticon}`)
+    .join(", ");
+
+  console.log(
+    `[Ollama] Analyzing lyric emotional tone and mood for: ${title} - ${artist}`,
+  );
 
   try {
     const aiResponse = await openai.chat.completions.create({
@@ -52,7 +58,10 @@ async function analyzeTrackMood(title, artist, lyricsText) {
           - "emoticon": (The chosen emoji symbol)
           - "baselineLegendMood": (Must perfectly match one of the strings in the baseline legend list)`,
         },
-        { role: "user", content: `Analyze this track:\nTitle: "${title}"\nArtist: "${artist}"\nLyrics: ${lyricsText}` },
+        {
+          role: "user",
+          content: `Analyze this track:\nTitle: "${title}"\nArtist: "${artist}"\nLyrics: ${lyricsText}`,
+        },
       ],
     });
 
@@ -61,14 +70,25 @@ async function analyzeTrackMood(title, artist, lyricsText) {
 
       if (parsed.customMood && parsed.emoticon && parsed.baselineLegendMood) {
         let cleanedLabel = parsed.customMood.replace(/[^a-zA-Z]/g, "").trim();
-        cleanedLabel = cleanedLabel.charAt(0).toUpperCase() + cleanedLabel.slice(1).toLowerCase();
+        cleanedLabel =
+          cleanedLabel.charAt(0).toUpperCase() +
+          cleanedLabel.slice(1).toLowerCase();
 
-        const validatedBaseline = baselineMoodNames.includes(parsed.baselineLegendMood.trim())
+        const validatedBaseline = baselineMoodNames.includes(
+          parsed.baselineLegendMood.trim(),
+        )
           ? parsed.baselineLegendMood.trim()
           : null;
 
         if (cleanedLabel && validatedBaseline) {
-          return { label: cleanedLabel, emoji: parsed.emoticon.trim(), legendGroup: validatedBaseline };
+          console.log(
+            `[Ollama] Successfully tagged mood [${cleanedLabel} ${parsed.emoticon.trim()}] -> Mapped to: ${validatedBaseline}`,
+          );
+          return {
+            label: cleanedLabel,
+            emoji: parsed.emoticon.trim(),
+            legendGroup: validatedBaseline,
+          };
         }
       }
     }
@@ -78,38 +98,55 @@ async function analyzeTrackMood(title, artist, lyricsText) {
 
   const fallbackIndex = title.length % defaultMoodMatrix.length;
   const fallbackObj = defaultMoodMatrix[fallbackIndex];
-  return { label: fallbackObj.mood, emoji: fallbackObj.emoticon, legendGroup: fallbackObj.mood };
+  console.log(
+    `[Ollama] Processing issue or empty response. Defaulting fallback to: ${fallbackObj.mood}`,
+  );
+
+  return {
+    label: fallbackObj.mood,
+    emoji: fallbackObj.emoticon,
+    legendGroup: fallbackObj.mood,
+  };
 }
 
 async function generateRecommendations(title, artist, mood) {
-
-  const aiResponse = await openai.chat.completions.create({
-    model: "llama3",
-    response_format: { type: "json_object" },
-    messages: [
-      {
-        role: "system",
-        content: `You are a music recommendation engine. Your task is to generate 9 real, well-known songs that perfectly match the requested mood vibe. 
-        
-        CRITICAL: You must return a RAW JSON object ONLY. 
-        The JSON root must have a "tracks" key containing an array of 9 objects.
-        Each object in the array must strictly have these fields:
-        - "title": (The name of the recommended song)
-        - "artist": (The artist name)
-        
-        Example structural shape:
+  try {
+    const aiResponse = await openai.chat.completions.create({
+      model: "llama3",
+      response_format: { type: "json_object" },
+      messages: [
         {
-          "tracks": [
-            { "title": "Song Name", "artist": "Artist Name" }
-          ]
-        }`,
-      },
-      { role: "user", content: `The user is listening to "${title}" by "${artist}", which has an analyzed mood of "${mood}". Suggest 9 alternative matching tracks.` },
-    ],
-  });
+          role: "system",
+          content: `You are a music recommendation engine. Your task is to generate 9 real, well-known songs that perfectly match the requested mood vibe. 
+          
+          CRITICAL: You must return a RAW JSON object ONLY. 
+          The JSON root must have a "tracks" key containing an array of 9 objects.
+          Each object in the array must strictly have these fields:
+          - "title": (The name of the recommended song)
+          - "artist": (The artist name)
+          
+          Example structural shape:
+          {
+            "tracks": [
+              { "title": "Song Name", "artist": "Artist Name" }
+            ]
+          }`,
+        },
+        {
+          role: "user",
+          content: `The user is listening to "${title}" by "${artist}", which has an analyzed mood of "${mood}". Suggest 9 alternative matching tracks.`,
+        },
+      ],
+    });
 
-  const parsedData = parseAIJsonResponse(aiResponse.choices[0].message.content);
-  return parsedData.tracks || [];
+    const parsedData = parseAIJsonResponse(
+      aiResponse.choices[0].message.content,
+    );
+    return parsedData.tracks || [];
+  } catch (err) {
+    console.warn("[AI Recommendations Error]:", err.message);
+    return [];
+  }
 }
 
 module.exports = { analyzeTrackMood, generateRecommendations };

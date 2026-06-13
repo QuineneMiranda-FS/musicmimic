@@ -3,21 +3,27 @@
   --bg-base: #121212;
   --bg-card: #181818;
   --bg-card-hover: #282828;
+  --bg-input: #242424;
+  --bg-input-focus: #2a2a2a;
   --accent: #1db954;
   --accent-hover: #1ed760;
 
   /* Text & Border Colors */
   --text-main: #ffffff;
   --text-muted: #b3b3b3;
+  --text-placeholder: #757575;
+  --text-lyrics: #e0e0e0;
   --border: #282828;
+  --border-light: #3e3e3e;
 
+  /* Effects & Typography */
   --shadow: rgba(0, 0, 0, 0.5) 0 8px 24px;
   --sans:
     "Circular Std", -apple-system, BlinkMacSystemFont, Roboto, "Helvetica Neue",
     sans-serif;
 }
 
-/* Main */
+/* --- General --- */
 html {
   box-sizing: border-box;
 }
@@ -55,7 +61,6 @@ h3 {
 h1 {
   font-size: 2rem;
 }
-
 h2 {
   font-size: 1.5rem;
   margin-bottom: 16px;
@@ -63,7 +68,7 @@ h2 {
   border-bottom: 1px solid var(--border);
 }
 
-/* App Containers */
+/* --- Layout Containers --- */
 #app-container,
 #app {
   min-height: 100vh;
@@ -76,17 +81,10 @@ h2 {
   flex-direction: column;
 }
 
-/* Page Layouts */
 .search-page,
 .details-page {
   padding: 40px 32px;
   width: 100%;
-  box-sizing: border-box;
-}
-
-.search-page {
-  background-color: var(--bg-base);
-  min-height: 100vh;
 }
 
 .details-page {
@@ -101,7 +99,7 @@ header {
   margin-bottom: 32px;
 }
 
-/* Search Controls */
+/* --- Search Controls --- */
 .search-bar-container {
   display: flex;
   gap: 12px;
@@ -112,7 +110,7 @@ header {
 
 .search-bar-container input {
   flex: 1;
-  background-color: #242424;
+  background-color: var(--bg-input);
   border: 1px solid transparent;
   color: var(--text-main);
   padding: 14px 24px;
@@ -126,19 +124,37 @@ header {
 
 .search-bar-container input:focus {
   outline: none;
-  background-color: #2a2a2a;
-  border-color: #fff;
+  background-color: var(--bg-input-focus);
+  border-color: var(--text-main);
 }
 
 .search-bar-container input::placeholder {
-  color: #757575;
+  color: var(--text-placeholder);
 }
 
-/* Buttons  */
+/* --- Elements & Buttons --- */
+.btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 500px;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    transform 0.1s ease,
+    background-color 0.2s ease;
+}
+
+.spotify-btn {
+  composes: btn-base;
+}
+
+/* Shared Buttons */
 .spotify-btn,
 .spotify-link-btn {
   background-color: var(--accent);
-  color: #ffffff;
+  color: var(--text-main);
   border: none;
   border-radius: 500px;
   display: inline-flex;
@@ -167,14 +183,13 @@ header {
   box-shadow: 0 4px 12px rgba(29, 185, 84, 0.2);
 }
 
-.spotify-btn:hover,
-.spotify-link-btn:hover {
-  background-color: var(--accent-hover);
+.spotify-btn:hover {
   transform: scale(1.04);
+  background-color: var(--accent-hover);
 }
-
 .spotify-link-btn:hover {
   transform: scale(1.02);
+  background-color: var(--accent-hover);
 }
 
 .spotify-icon {
@@ -196,12 +211,11 @@ header {
   padding: 8px 24px;
   font-size: 0.8rem;
 }
-
 .logout-btn:hover {
   transform: scale(1.04);
 }
 
-/* Dashboard & Grid  */
+/* --- Grid & Content Layouts --- */
 .results-area,
 .details-recommendations-section {
   width: 100%;
@@ -220,31 +234,28 @@ header {
   display: flex;
   flex-direction: column;
 }
-
 .column-panel {
   min-width: 0;
 }
-
 .column-stack {
   gap: 8px;
 }
 
-/* Cards */
-.card,
-.rec-mini-card {
+/* --- Components: Cards --- */
+.card-base {
   display: flex;
   align-items: center;
   gap: 16px;
   width: 100%;
-  border-radius: 4px;
+  text-decoration: none;
+  color: inherit;
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease;
-  text-decoration: none;
-  color: inherit;
 }
 
 .card {
+  border-radius: 4px;
   background-color: transparent;
   padding: 8px 16px;
 }
@@ -260,94 +271,78 @@ header {
 .rec-mini-card:hover {
   background-color: var(--bg-card-hover);
 }
-
 .rec-mini-card:hover {
   border-color: var(--border);
 }
 
-/* Image Containers inside Cards */
-.card a,
-.card .img-container,
-.rec-mini-card img {
+/* Card Media  */
+.card-media-wrapper {
   width: 52px;
   height: 52px;
-  min-width: 52px;
-  min-height: 52px;
   flex-shrink: 0;
   border-radius: 4px;
   overflow: hidden;
 }
 
-.rec-mini-card img {
+.rec-mini-card .card-media-wrapper {
   width: 48px;
   height: 48px;
-  min-width: 48px;
-  min-height: 48px;
 }
 
-.card img,
-.card .img-container img {
+.card-media-wrapper img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
 }
 
-.card img.artist-img,
-.card a img.artist-img,
-.card .img-container img.artist-img {
+.card-media-wrapper img.artist-img {
   border-radius: 50%;
 }
 
-/* Text */
-.card .info,
-.rec-card-info {
+/* Card Text */
+.card-text-block {
   flex: 1;
   min-width: 0;
   text-align: left;
 }
 
-.card .info h3,
-.rec-card-info h3 {
-  font-size: 0.95rem;
-  font-weight: 500;
+.card-text-block h3,
+.card-text-block p {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.card-text-block h3 {
+  font-size: 0.95rem;
+  font-weight: 500;
   color: var(--text-main);
   margin-bottom: 4px;
 }
-
-.rec-card-info h3 {
+.rec-mini-card .card-text-block h3 {
   font-size: 0.875rem;
   font-weight: 600;
 }
 
-.card .info p,
-.rec-card-info p {
+.card-text-block p {
   font-size: 0.85rem;
   color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-
-.rec-card-info p {
+.rec-mini-card .card-text-block p {
   font-size: 0.75rem;
 }
 
-/* Track & Badge */
+/* --- State/Actions --- */
 .track-card {
   cursor: pointer;
 }
-
 .track-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
 }
-
 .mood-emoticon {
   font-size: 1.2rem;
   line-height: 1;
@@ -355,9 +350,9 @@ header {
 
 .analyze-badge {
   font-size: 11px;
-  background-color: #242424;
+  background-color: var(--bg-input);
   color: var(--text-main);
-  border: 1px solid #3e3e3e;
+  border: 1px solid var(--border-light);
   padding: 3px 10px;
   border-radius: 500px;
   opacity: 0;
@@ -369,18 +364,16 @@ header {
 .track-card:hover .analyze-badge {
   opacity: 1;
 }
-
 .analyze-badge:hover {
   background-color: var(--text-main);
   color: #000;
 }
-
 .is-analyzing {
   opacity: 0.4;
   pointer-events: none;
 }
 
-/* Status Elements */
+/* --- UI Elements --- */
 .status-message,
 .details-status-msg {
   display: flex;
@@ -395,13 +388,11 @@ header {
   height: 200px;
   text-align: center;
 }
-
 .details-status-msg {
   align-items: center;
   gap: 16px;
   padding: 24px;
 }
-
 .status-message p {
   color: var(--text-muted);
   font-size: 1.1rem;
@@ -432,11 +423,10 @@ header {
   text-align: center;
 }
 
-/* Song Details  */
+/* --- Song Details View --- */
 .details-nav {
   margin-bottom: 24px;
 }
-
 .back-link {
   color: var(--text-muted);
   text-decoration: none;
@@ -444,22 +434,22 @@ header {
   font-weight: 700;
   transition: color 0.2s ease;
 }
-
 .back-link:hover {
   color: var(--accent);
 }
 
 .details-split-container {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: minmax(200px, 300px) 1fr;
   gap: 48px;
   align-items: start;
   margin-bottom: 48px;
 }
 
 .large-cover-frame {
-  width: 300px;
-  height: 300px;
+  max-width: 300px;
+  width: 100%;
+  aspect-ratio: 1 / 1;
   background-color: var(--bg-card);
   border-radius: 8px;
   overflow: hidden;
@@ -480,7 +470,7 @@ header {
   align-items: center;
   justify-content: center;
   font-size: 5rem;
-  background-color: #242424;
+  background-color: var(--bg-input);
 }
 
 .details-content-panel {
@@ -489,13 +479,11 @@ header {
   gap: 24px;
   min-width: 0;
 }
-
 .song-meta-header h1 {
   font-size: 2.5rem;
   line-height: 1.2;
   margin-bottom: 8px;
 }
-
 .meta-artist {
   font-size: 1.25rem;
   color: var(--text-muted);
@@ -514,12 +502,11 @@ header {
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
-
 .vibe-badge span {
   color: var(--accent);
 }
 
-/* Lyrics  */
+/* --- Lyrics --- */
 .lyrics-card {
   background-color: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border);
@@ -531,7 +518,7 @@ header {
   font-family: Georgia, serif;
   font-size: 1rem;
   line-height: 1.7;
-  color: #e0e0e0;
+  color: var(--text-lyrics);
   font-style: italic;
   white-space: pre-line;
   max-height: 350px;
@@ -542,7 +529,6 @@ header {
 .lyrics-body-text::-webkit-scrollbar {
   width: 6px;
 }
-
 .lyrics-body-text::-webkit-scrollbar-thumb {
   background-color: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
@@ -555,7 +541,7 @@ header {
   margin-top: 20px;
 }
 
-/* Audio Player  */
+/* --- Audio Player --- */
 .player-container {
   margin: 1.5rem auto 0 auto;
   display: flex;
@@ -570,15 +556,13 @@ header {
   flex-direction: column;
   gap: 0.5rem;
 }
-
 .player-label {
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 1px;
-  color: #b3b3b3;
+  color: var(--text-muted);
   font-weight: bold;
 }
-
 .snippet-player {
   width: 100%;
   height: 40px;
@@ -595,21 +579,35 @@ header {
   border-radius: 6px;
 }
 
-/* Animations */
+/* --- Animations --- */
 .fade-enter-active,
 .fade-leave-active {
   transition:
     opacity 0.2s ease,
     transform 0.2s ease;
 }
-
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
   transform: translateY(4px);
 }
 
-/* Responsive Media  */
+.tab-content-window {
+  width: 100%;
+  animation: fadeIn 0.25s ease-out;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Responsive Layouts --- */
 @media (max-width: 900px) {
   .dashboard-columns {
     grid-template-columns: 1fr;
@@ -621,24 +619,7 @@ header {
     grid-template-columns: 1fr;
     gap: 32px;
   }
-  .details-artwork-panel {
-    display: flex;
-    justify-content: center;
-  }
-}
-/* Tabbed Card in Search */
-.tab-content-window {
-  width: 100%;
-  animation: fadeIn 0.25s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(2px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  .large-cover-frame {
+    margin: 0 auto;
   }
 }
