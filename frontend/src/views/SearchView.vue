@@ -16,22 +16,7 @@
     </div>
 
     <main class="results-area">
-      <div v-if="!hasSearched" class="status-message">
-        <p>Your Spotify is connected! Type above to search music.</p>
-      </div>
-
-      <div
-        v-else-if="
-          results.tracks.length === 0 &&
-          results.artists.length === 0 &&
-          results.albums.length === 0
-        "
-        class="status-message"
-      >
-        <p>No results found matching "{{ searchQuery }}". Try another query!</p>
-      </div>
-
-      <div v-else class="dashboard-columns-revamped">
+      <div class="dashboard-columns-revamped">
         <section class="column-panel main-tabbed-panel">
           <div class="tabs-header-row">
             <button
@@ -59,18 +44,29 @@
 
           <div class="tab-content-window">
             <div v-if="activeTab === 'tracks'">
-              <div
-                v-if="isRingSearching"
-                class="column-status-loader animate-fade-in"
-              >
-                <span class="analyzing-text-spinner large-spinner">⚡</span>
-                <p>Flipping the vibe... Consulting AI for alternatives...</p>
+              <div v-if="!hasSearched" class="status-message">
+                <p>Your Spotify is connected! Type above to search music.</p>
               </div>
 
               <div
-                v-else-if="results.tracks && results.tracks.length"
-                class="column-grid"
+                v-else-if="isRingSearching"
+                class="column-status-loader animate-fade-in"
               >
+                <span class="analyzing-text-spinner large-spinner">⚡</span>
+                <p>Flipping the mood... Consulting AI for alternatives...</p>
+              </div>
+
+              <div
+                v-else-if="results.tracks.length === 0"
+                class="status-message"
+              >
+                <p>
+                  No results found matching "{{ searchQuery }}". Try another
+                  query!
+                </p>
+              </div>
+
+              <div v-else class="column-grid">
                 <div
                   v-for="track in filteredTracks"
                   :key="track.id"
@@ -88,9 +84,9 @@
                     <div class="track-header">
                       <h3>{{ track.name }}</h3>
                       <div v-if="track.emoticon" class="mood-display-block">
-                        <span class="mood-emoticon animate-pop">{{
-                          track.emoticon
-                        }}</span>
+                        <span class="mood-emoticon animate-pop">
+                          {{ track.emoticon }}
+                        </span>
                       </div>
                       <span
                         v-else-if="track.isAnalyzing"
@@ -103,14 +99,19 @@
                   </div>
                 </div>
               </div>
-              <p v-else class="empty-column-msg">No track results found.</p>
             </div>
 
             <div v-if="activeTab === 'albums'">
+              <div v-if="!hasSearched" class="status-message">
+                <p>Your Spotify is connected! Type above to search albums.</p>
+              </div>
               <div
-                v-if="results.albums && results.albums.length"
-                class="column-grid"
+                v-else-if="results.albums.length === 0"
+                class="status-message"
               >
+                <p>No albums found matching "{{ searchQuery }}".</p>
+              </div>
+              <div v-else class="column-grid">
                 <a
                   v-for="album in results.albums"
                   :key="album.id"
@@ -131,14 +132,19 @@
                   </div>
                 </a>
               </div>
-              <p v-else class="empty-column-msg">No album results found.</p>
             </div>
 
             <div v-if="activeTab === 'artists'">
+              <div v-if="!hasSearched" class="status-message">
+                <p>Your Spotify is connected! Type above to search artists.</p>
+              </div>
               <div
-                v-if="results.artists && results.artists.length"
-                class="column-grid"
+                v-else-if="results.artists.length === 0"
+                class="status-message"
               >
+                <p>No artists found matching "{{ searchQuery }}".</p>
+              </div>
+              <div v-else class="column-grid">
                 <a
                   v-for="artist in results.artists"
                   :key="artist.id"
@@ -162,33 +168,21 @@
                   </div>
                 </a>
               </div>
-              <p v-else class="empty-column-msg">No artist results found.</p>
             </div>
           </div>
 
           <div class="mood-legend-box text-left-adjusted">
-            <h4>Vibe Key</h4>
+            <h4>Mood Key</h4>
             <div class="legend-grid row-layout-adjusted">
-              <div class="legend-item">
-                <span class="text-color-chill">🌊</span> Chill
-              </div>
-              <div class="legend-item">
-                <span class="text-color-energetic">🔥</span> Energetic
-              </div>
-              <div class="legend-item">
-                <span class="text-color-happy">☀️</span> Happy
-              </div>
-              <div class="legend-item">
-                <span class="text-color-sad">🌧️</span> Melancholic
-              </div>
-              <div class="legend-item">
-                <span class="text-color-romantic">💖</span> Romantic
-              </div>
-              <div class="legend-item">
-                <span class="text-color-mysterious">🔮</span> Mysterious
-              </div>
-              <div class="legend-item">
-                <span class="text-color-ethereal">✨</span> Ethereal
+              <div
+                v-for="item in activeLegendMoods"
+                :key="item.id"
+                class="legend-item animate-pop"
+              >
+                <span :class="`text-color-${item.legendGroup}`">
+                  {{ item.emoticon }}
+                </span>
+                {{ item.name }}
               </div>
             </div>
           </div>
@@ -219,7 +213,7 @@
               <div class="mood-ring-cta-block">
                 <button
                   @click="restoreMoodRingFeature"
-                  class="ring-vibe-btn action-restore-btn animate-pulse-glow"
+                  class="ring-mood-btn action-restore-btn animate-pulse-glow"
                 >
                   🔓 Admit you miss me and I'll let you have your mood ring
                   back.
@@ -277,9 +271,9 @@
                   :class="`ring-halo-${currentSelectedMood.id}`"
                 >
                   <div class="mood-ring-inner-core">
-                    <span class="mood-ring-emoji-avatar">{{
-                      currentSelectedMood.emoticon
-                    }}</span>
+                    <span class="mood-ring-emoji-avatar">
+                      {{ currentSelectedMood.emoticon }}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -287,12 +281,13 @@
               <div class="mood-ring-interactive-dialogue">
                 <p class="mood-statement-text">
                   Based on recent choices, your
-                  <span class="timeframe-label">{{ activeRingTab }}</span> vibe
+                  <span class="timeframe-label">{{ activeRingTab }}</span> mood
                   is rather
                   <span
                     class="highlighted-mood-span"
                     :class="`text-color-${currentSelectedMood.id}`"
-                    >{{ currentSelectedMood.label }}</span
+                  >
+                    {{ currentSelectedMood.label }} </span
                   >.
                 </p>
 
@@ -301,13 +296,13 @@
                   <div class="cta-actions-button-row">
                     <button
                       @click="triggerAlternativeSearch('same')"
-                      class="ring-vibe-btn action-match-btn"
+                      class="ring-mood-btn action-match-btn"
                     >
                       More {{ currentSelectedMood.label }} Songs
                     </button>
                     <button
                       @click="triggerAlternativeSearch('opposite')"
-                      class="ring-vibe-btn action-flip-btn"
+                      class="ring-mood-btn action-flip-btn"
                     >
                       {{ oppositeMoodButtonText }}
                     </button>
@@ -332,7 +327,7 @@
           class="column-panel history-full-row-panel animate-fade-in"
         >
           <div class="history-section-header">
-            <h2>I Know You Looked At These Songs...</h2>
+            <h2>I Saw You Looking At These Songs:</h2>
             <button
               @click="clearOnlyVisualHistory"
               class="clear-history-action-btn"
@@ -381,7 +376,25 @@ const clickedMoodsHistory = ref([]);
 const isSpyingStopped = ref(false);
 const isRingSearching = ref(false);
 
+// Moods
+const moodMatrixConfig = {
+  energetic: { label: "Energetic", emoticon: "⚡" },
+  angry: { label: "Angry", emoticon: "🔥" },
+  happy: { label: "Happy", emoticon: "☀️" },
+  upbeat: { label: "Upbeat", emoticon: "🕺" },
+  chill: { label: "Chill", emoticon: "🌊" },
+  melancholic: { label: "Melancholic", emoticon: "🌧️" },
+  romantic: { label: "Romantic", emoticon: "💖" },
+  mysterious: { label: "Mysterious", emoticon: "🔮" },
+  ethereal: { label: "Ethereal", emoticon: "✨" },
+  grounded: { label: "Grounded", emoticon: "🪵" },
+};
+
+// Hold new Moods
+const permanentCustomMoods = ref([]);
+
 onMounted(() => {
+  // History
   const savedHistory = localStorage.getItem("mimic_daily_mood_clicks");
   if (savedHistory) {
     try {
@@ -391,9 +404,136 @@ onMounted(() => {
     }
   }
 
+  // Spying
   if (localStorage.getItem("mimic_privacy_shield") === "true") {
     isSpyingStopped.value = true;
   }
+
+  // Load Moods fm Local
+  const savedCustomMoods = localStorage.getItem("mimic_permanent_ai_moods");
+  if (savedCustomMoods) {
+    try {
+      permanentCustomMoods.value = JSON.parse(savedCustomMoods);
+    } catch (e) {
+      console.error("Failed to parse custom moods", e);
+    }
+  }
+});
+
+// Helper to Sv New Moods
+const saveNewAImoodPermanently = (normalizedName, emoticon, legendGroup) => {
+  const lowerName = normalizedName.toLowerCase();
+
+  // Check if already exists
+  if (moodMatrixConfig[lowerName]) return;
+
+  // Check if already saved
+  const alreadySaved = permanentCustomMoods.value.some(
+    (item) => item.id === lowerName,
+  );
+
+  if (!alreadySaved) {
+    const newMoodObj = {
+      id: lowerName,
+      name: normalizedName,
+      emoticon: emoticon || "🎵",
+      legendGroup: legendGroup ? legendGroup.toLowerCase() : "chill",
+    };
+
+    // Add & Sv
+    permanentCustomMoods.value.push(newMoodObj);
+    localStorage.setItem(
+      "mimic_permanent_ai_moods",
+      JSON.stringify(permanentCustomMoods.value),
+    );
+  }
+};
+
+const activeLegendMoods = computed(() => {
+  // Start with Base Moods
+  const baseLegend = [
+    { id: "chill", name: "Chill", emoticon: "🌊", legendGroup: "chill" },
+    {
+      id: "energetic",
+      name: "Energetic",
+      emoticon: "⚡",
+      legendGroup: "energetic",
+    },
+    { id: "angry", name: "Angry", emoticon: "🔥", legendGroup: "angry" },
+    { id: "happy", name: "Happy", emoticon: "☀️", legendGroup: "happy" },
+    {
+      id: "melancholic",
+      name: "Melancholic",
+      emoticon: "🌧️",
+      legendGroup: "melancholic",
+    },
+    {
+      id: "romantic",
+      name: "Romantic",
+      emoticon: "💖",
+      legendGroup: "romantic",
+    },
+    {
+      id: "mysterious",
+      name: "Mysterious",
+      emoticon: "🔮",
+      legendGroup: "mysterious",
+    },
+    {
+      id: "ethereal",
+      name: "Ethereal",
+      emoticon: "✨",
+      legendGroup: "ethereal",
+    },
+    { id: "upbeat", name: "Upbeat", emoticon: "🕺", legendGroup: "upbeat" },
+    {
+      id: "grounded",
+      name: "Grounded",
+      emoticon: "🪵",
+      legendGroup: "grounded",
+    },
+  ];
+
+  // Sv to Display Permanently
+  permanentCustomMoods.value.forEach((customMood) => {
+    const exists = baseLegend.some((item) => item.id === customMood.id);
+    if (!exists) {
+      baseLegend.push(customMood);
+    }
+  });
+
+  const currentTracks = results.value?.tracks || [];
+  const historyTracks = clickedMoodsHistory.value || [];
+  const allAvailableSongs = [...currentTracks, ...historyTracks];
+
+  allAvailableSongs.forEach((track) => {
+    if (track.mood) {
+      const normalizedName = track.mood.trim();
+      const lowerName = normalizedName.toLowerCase();
+
+      // Sv to Local
+      saveNewAImoodPermanently(
+        normalizedName,
+        track.emoticon,
+        track.legendGroup,
+      );
+
+      const alreadyInLegend = baseLegend.some((item) => item.id === lowerName);
+
+      if (!alreadyInLegend) {
+        baseLegend.push({
+          id: lowerName,
+          name: normalizedName,
+          emoticon: track.emoticon || "🎵",
+          legendGroup: track.legendGroup
+            ? track.legendGroup.toLowerCase()
+            : "chill",
+        });
+      }
+    }
+  });
+
+  return baseLegend;
 });
 
 const {
@@ -463,38 +603,60 @@ const getAggregateMood = (sourceArray) => {
     "",
   );
 
-  const matchingItem = sourceArray.find(
-    (item) => item.mood.trim().toLowerCase() === topMoodKey,
-  );
+  if (!topMoodKey) return null;
+
+  // Chk Base Moods
+  let moodConfig = moodMatrixConfig[topMoodKey];
+
+  // Lookup if Not found
+  if (!moodConfig) {
+    const foundCustom = permanentCustomMoods.value.find(
+      (item) => item.id === topMoodKey,
+    );
+    if (foundCustom) {
+      moodConfig = {
+        label: foundCustom.name,
+        emoticon: foundCustom.emoticon,
+      };
+    }
+  }
 
   return {
     id: topMoodKey,
-    label: matchingItem?.mood || "Chill",
-    emoticon: matchingItem?.emoticon || "🌊",
+    label: moodConfig ? moodConfig.label : "Alternative",
+    emoticon: moodConfig ? moodConfig.emoticon : "🎵",
   };
 };
 
 const dominantMood = computed(() => {
+  // Keep eye on Moods
+  const history = clickedMoodsHistory.value || [];
+  if (!history.length) return null;
+
   const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-  const dailyTracks = clickedMoodsHistory.value.filter(
+  const dailyTracks = history.filter(
     (item) => !item.timestamp || item.timestamp >= oneDayAgo,
   );
   return getAggregateMood(dailyTracks);
 });
 
 const weeklyMood = computed(() => {
-  if (!clickedMoodsHistory.value.length) return null;
+  const history = clickedMoodsHistory.value || [];
+  if (!history.length) return null;
+
   const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  const weeklyTracks = clickedMoodsHistory.value.filter(
+  const weeklyTracks = history.filter(
     (item) => !item.timestamp || item.timestamp >= oneWeekAgo,
   );
   return getAggregateMood(weeklyTracks);
 });
 
 const monthlyMood = computed(() => {
-  if (!clickedMoodsHistory.value.length) return null;
+  const history = clickedMoodsHistory.value || [];
+  if (!history.length) return null;
+
   const oneMonthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-  const monthlyTracks = clickedMoodsHistory.value.filter(
+  const monthlyTracks = history.filter(
     (item) => !item.timestamp || item.timestamp >= oneMonthAgo,
   );
   return getAggregateMood(monthlyTracks);
@@ -517,7 +679,11 @@ const moodOppositesMap = {
   angry: { label: "Peaceful", query: "Chill peaceful acoustic meditative" },
   romantic: { label: "Mysterious", query: "Dark mysterious gothic" },
   mysterious: { label: "Romantic", query: "Romantic bright pop" },
-  ethereal: { label: "Grounded", query: "Aggressive heavy industrial metal" },
+  ethereal: {
+    label: "Grounded",
+    query: "Acoustic indie folk structural roots",
+  },
+  grounded: { label: "Ethereal", query: "Ambient synth dream pop" },
 };
 
 const oppositeMoodButtonText = computed(() => {
@@ -795,7 +961,7 @@ const triggerAlternativeSearch = async (type) => {
   width: 100%;
 }
 
-.ring-vibe-btn {
+.ring-mood-btn {
   width: 100%;
   padding: 12px 16px;
   border-radius: 6px;
@@ -892,7 +1058,7 @@ const triggerAlternativeSearch = async (type) => {
   position: relative;
   overflow: hidden;
   border: 2px solid rgba(255, 255, 255, 0.1);
-  animation: colorVibeShift 12s infinite linear;
+  animation: colorMoodShift 12s infinite linear;
 }
 
 .lava-blob {
@@ -936,7 +1102,7 @@ const triggerAlternativeSearch = async (type) => {
   animation-delay: 3.5s;
 }
 
-@keyframes colorVibeShift {
+@keyframes colorMoodShift {
   0% {
     filter: hue-rotate(0deg) saturate(1.4);
   }

@@ -1,7 +1,9 @@
-const { TrackMood } = require("../models/trackmood");
-const axios = require("axios");
+"use strict";
 
-// Helper - Energy to Emoticons
+const axios = require("axios");
+const { TrackMood } = require("../models/trackmood");
+
+/* Valence/Energy to Mood */
 function calculateMood(valence, energy) {
   if (valence >= 0.5 && energy >= 0.5)
     return { emoji: "🥳", label: "Happy/Hype" };
@@ -12,26 +14,32 @@ function calculateMood(valence, energy) {
   return { emoji: "😢", label: "Sad/Melancholic" };
 }
 
+// GET: Track Mood
 exports.getTrackMood = async (req, res) => {
   try {
     const { trackId } = req.params;
     const spotifyToken = req.headers.authorization;
 
-    // Check db
-    let cachedMood = await TrackMood.findByPk(trackId);
+    if (!spotifyToken) {
+      return res.status(401).json({ error: "Missing authorization token" });
+    }
+
+    // DB Lookup
+    const cachedMood = await TrackMood.findByPk(trackId);
     if (cachedMood) {
       return res.json(cachedMood);
     }
 
-    // Fetch if not in db
-    const spotifyResponse = await axios.get(`https://spotify.com{trackId}`, {
+    // Fetch Audio
+    const spotifyResponse = await axios.get(`https://spotify.com${trackId}`, {
       headers: { Authorization: spotifyToken },
     });
 
-    const { valence, energy } = spotifyResponse.data;
+    // Fallback
+    const { valence = 0.5, energy = 0.5 } = spotifyResponse.data || {};
     const { emoji, label } = calculateMood(valence, energy);
 
-    // Save to db
+    // Analysis to DB
     const newMoodRecord = await TrackMood.create({
       spotifyTrackId: trackId,
       valence,
@@ -40,25 +48,33 @@ exports.getTrackMood = async (req, res) => {
       moodLabel: label,
     });
 
-    return res.json(newMoodRecord);
+    return res.status(201).json(newMoodRecord);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to analyze song mood" });
+    console.error("[getTrackMood Error]:", error.message);
+    return res.status(500).json({ error: "Failed to analyze song mood" });
   }
 };
 
+// GET: Recs
 exports.getMoodRecommendations = async (req, res) => {
   try {
     const { trackId } = req.params;
     const spotifyToken = req.headers.authorization;
 
-    // Pull from db
-    const moodData = await TrackMood.findByPk(trackId);
-    if (!moodData)
-      return res.status(404).json({ error: "Analyze track mood first" });
+    if (!spotifyToken) {
+      return res.status(401).json({ error: "Missing authorization token" });
+    }
 
-    // Query Spotify
-    const recommendations = await axios.get(`https://spotify.com`, {
+    // Fm Local DB
+    const moodData = await TrackMood.findByPk(trackId);
+    if (!moodData) {
+      return res.status(404).json({
+        error: "Analyze track mood first before requesting mix recommendations",
+      });
+    }
+
+    // Rec Response
+    const recommendationsResponse = await axios.get("https://spotify.com", {
       headers: { Authorization: spotifyToken },
       params: {
         seed_tracks: trackId,
@@ -68,9 +84,10 @@ exports.getMoodRecommendations = async (req, res) => {
       },
     });
 
-    res.json(recommendations.data.tracks);
+    const recommendedTracks = recommendationsResponse.data?.tracks || [];
+    return res.json(recommendedTracks);
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to generate playlist mix" });
+    console.error("[getMoodRecommendations Error]:", error.message);
+    return res.status(500).json({ error: "Failed to generate playlist mix" });
   }
 };

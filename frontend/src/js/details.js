@@ -11,16 +11,16 @@ export function useDetailsLogic(route) {
 
   const previewUrl = ref(route.query.previewUrl || null);
 
-  const lyrics = ref("Getting Genius Live Data...");
+  const lyricsText = ref("Getting Genius Live Data...");
   const recommendations = ref([]);
   const isLoadingRecs = ref(false);
 
   const loadPageData = async () => {
     if (!trackId.value) return;
     isLoadingRecs.value = true;
-    lyrics.value = "Getting Genius Live Data...";
+    lyricsText.value = "Getting Genius Live Data...";
 
-    // Lyrics & Mood fm Backend
+    // Lyrics & Mood from Backend
     try {
       const analyzeRes = await axios.post(
         "http://localhost:3000/api/tracks/analyze",
@@ -30,7 +30,8 @@ export function useDetailsLogic(route) {
           artist: artist.value,
         },
       );
-      lyrics.value = analyzeRes.data.lyricsText;
+      // Payload Txt
+      lyricsText.value = analyzeRes.data.lyricsText;
 
       // Only override if no mood already
       if (!mood.value && analyzeRes.data.mood) {
@@ -46,7 +47,7 @@ export function useDetailsLogic(route) {
         albumImage.value = analyzeRes.data.albumImage;
     } catch (err) {
       console.error("Genius Scraping Error:", err);
-      lyrics.value = "Failed to sync song profile.";
+      lyricsText.value = "Failed to sync song profile.";
     }
 
     // AI Recs
@@ -102,7 +103,7 @@ export function useDetailsLogic(route) {
     emoticon,
     albumImage,
     previewUrl,
-    lyrics,
+    lyricsText,
     recommendations,
     isLoadingRecs,
     loadPageData,

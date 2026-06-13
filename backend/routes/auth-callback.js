@@ -1,77 +1,83 @@
+"use strict";
+
 const express = require("express");
 const router = express.Router();
 const axios = require("axios");
 const jwt = require("jsonwebtoken");
-const querystring = require("querystring");
 const { User } = require("../models");
 
+const SPOTIFY_CLIENT_ID = (process.env.SPOTIFY_CLIENT_ID || "").trim();
+const SPOTIFY_CLIENT_SECRET = (process.env.SPOTIFY_CLIENT_SECRET || "").trim();
+const REDIRECT_URI = (process.env.SPOTIFY_REDIRECT_URI || "").trim();
+
+const BASIC_AUTH_HEADER = `Basic ${Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString("base64")}`;
+
+// GET: Spotify Callback
 router.get("/callback/spotify", async (req, res, next) => {
   try {
-    const code = req.query.code;
-    if (!code)
+    const { code } = req.query;
+    if (!code) {
       return res.status(400).json({ error: "No code provided from Spotify" });
+    }
 
-    // Spotify Account Token Gateway
+    // Exchange OAuth for Tokens
+    const tokenParams = new URLSearchParams({
+      grant_type: "authorization_code",
+      code: code,
+      redirect_uri: REDIRECT_URI,
+    });
+
     const tokenResponse = await axios.post(
       "https://accounts.spotify.com/api/token",
-      querystring.stringify({
-        grant_type: "authorization_code",
-        code: code,
-        redirect_uri: process.env.SPOTIFY_REDIRECT_URI,
-      }),
+      tokenParams.toString(),
       {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
-          Authorization:
-            "Basic " +
-            Buffer.from(
-              process.env.SPOTIFY_CLIENT_ID +
-                ":" +
-                process.env.SPOTIFY_CLIENT_SECRET,
-            ).toString("base64"),
+          Authorization: BASIC_AUTH_HEADER,
         },
       },
     );
 
-    const spotifyAccessToken = tokenResponse.data.access_token;
-    const spotifyRefreshToken = tokenResponse.data.refresh_token;
+    const {
+      access_token: spotifyAccessToken,
+      refresh_token: spotifyRefreshToken,
+    } = tokenResponse.data;
 
-    // Spotify Web API user profile endpoint
+    // Fetch Spotify User Profile
     const profileResponse = await axios.get("https://api.spotify.com/v1/me", {
       headers: { Authorization: `Bearer ${spotifyAccessToken}` },
     });
 
-    // Debug
     console.log("Spotify Profile Data Object:", profileResponse.data);
 
-    const [user, created] = await User.findOrCreate({
-      where: { spotifyId: profileResponse.data.id },
-      defaults: {
-        email: profileResponse.data.email,
-        displayName: profileResponse.data.display_name,
-        spotifyAccessToken: spotifyAccessToken,
-        spotifyRefreshToken: spotifyRefreshToken,
-      },
-    });
+    // DB Query (update or create)
+    const userData = {
+      email: profileResponse.data.email,
+      displayName: profileResponse.data.display_name,
+      spotifyAccessToken: spotifyAccessToken,
+    };
 
-    // If user exists update to newest token
-    if (!created) {
-      user.spotifyAccessToken = spotifyAccessToken;
-      if (spotifyRefreshToken) {
-        user.spotifyRefreshToken = spotifyRefreshToken;
-      }
-      await user.save();
+    if (spotifyRefreshToken) {
+      userData.spotifyRefreshToken = spotifyRefreshToken;
     }
 
-    // Generate token
+    const [user] = await User.upsert({
+      spotifyId: profileResponse.data.id,
+      ...userData,
+    });
+
+    // Generate Session JWT
     const appToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRES_IN || "1h",
     });
 
-    // Send token back to frontend
-    res.redirect(`http://127.0.0.1:5173/?token=${appToken}`);
+    // Redirect to Frontend
+    const frontendRedirect = new URL("http://127.0.0.1:5173/");
+    frontendRedirect.searchParams.append("token", appToken);
+
+    return res.redirect(frontendRedirect.toString());
   } catch (error) {
-    // Passes errors to errorHandler middleware
+    // To errorHandler
     next(error);
   }
 });

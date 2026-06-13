@@ -60,7 +60,7 @@
         <section class="lyrics-card">
           <h2>Lyrics [From Genius]</h2>
           <p class="lyrics-body-text">
-            {{ lyrics }}
+            {{ lyricsText }}
           </p>
         </section>
       </main>
@@ -125,15 +125,15 @@ const {
   emoticon,
   albumImage,
   previewUrl,
-  lyrics,
+  lyricsText,
   recommendations,
   isLoadingRecs,
 } = useDetailsLogic(route);
 </script>
+
 <style scoped>
 @import "../styles/main.css";
 
-/* Component Specific Styles - do not move! */
 .mood-pulse-text {
   display: inline-block;
   font-weight: 800;

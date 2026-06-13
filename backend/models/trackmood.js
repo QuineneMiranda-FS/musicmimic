@@ -7,15 +7,14 @@ module.exports = (sequelize) => {
       primaryKey: true,
       allowNull: false,
     },
-    //Musical Positiveness: High=cheerful, euphoric; Low= sad, depressed, angry
+    // Fallback for legacy ..debating necessity
     valence: {
       type: DataTypes.FLOAT,
-      allowNull: false,
+      allowNull: true,
     },
-    //Intensity: Fast/loud/noisy=high energy; Quiet=low energy
     energy: {
       type: DataTypes.FLOAT,
-      allowNull: false,
+      allowNull: true,
     },
     emoji: {
       type: DataTypes.STRING,
