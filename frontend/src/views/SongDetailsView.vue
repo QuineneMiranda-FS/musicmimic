@@ -16,7 +16,7 @@
         <div class="player-container">
           <div v-if="trackId" class="audio-wrapper">
             <iframe
-              style="border-radius: 12px"
+              class="spotify-embedded-iframe"
               :src="`https://open.spotify.com/embed/track/${trackId}?utm_source=generator`"
               width="100%"
               height="152"
@@ -95,7 +95,9 @@
           }"
           class="rec-mini-card"
         >
-          <img :src="rec.image || 'fallback.jpg'" alt="Album Mini Art" />
+          <div class="rec-image-wrapper">
+            <img :src="rec.image || 'fallback.jpg'" alt="Album Mini Art" />
+          </div>
           <div class="rec-card-info">
             <h3 :title="rec.title">{{ rec.title }}</h3>
             <p>{{ rec.artist }}</p>
@@ -114,7 +116,11 @@ const route = useRoute();
 const router = useRouter();
 
 const goBack = () => {
-  router.push({ path: "/search" });
+  if (window.history.length > 1) {
+    router.back();
+  } else {
+    router.push({ path: "/search" });
+  }
 };
 
 const {
@@ -130,30 +136,7 @@ const {
   isLoadingRecs,
 } = useDetailsLogic(route);
 </script>
-
-<style scoped>
+<style>
 @import "../styles/main.css";
-
-.mood-pulse-text {
-  display: inline-block;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--accent);
-  animation: moodGlowPulse 2s infinite ease-in-out;
-}
-
-@keyframes moodGlowPulse {
-  0%,
-  100% {
-    transform: scale(1);
-    text-shadow: 0 0 4px rgba(255, 255, 255, 0);
-    opacity: 0.9;
-  }
-  50% {
-    transform: scale(1.05);
-    text-shadow: 0 0 12px rgba(29, 185, 84, 0.6);
-    opacity: 1;
-  }
-}
+@import "../styles/detailsView.css";
 </style>

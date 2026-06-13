@@ -1,0 +1,180 @@
+/* Main */
+.details-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.details-nav {
+  margin-bottom: 24px;
+}
+.details-nav .back-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+  transition: color 0.15s ease;
+}
+.details-nav .back-link:hover {
+  color: var(--text-main);
+}
+
+/* 2 Column Grid */
+.details-split-container {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 40px;
+  align-items: start;
+}
+
+.details-artwork-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.details-artwork-panel .large-cover-frame {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #181818;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.details-artwork-panel .large-cover-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.details-artwork-panel .fallback-emoticon-avatar {
+  font-size: 5rem;
+}
+.details-artwork-panel .spotify-embedded-iframe {
+  border-radius: 12px;
+  border: none;
+  background-color: transparent;
+}
+
+.details-artwork-panel .spotify-link-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #1ed760;
+  color: #000;
+  padding: 12px;
+  border-radius: 24px;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition:
+    transform 0.2s,
+    background-color 0.2s;
+}
+.details-artwork-panel .spotify-link-btn:hover {
+  background-color: #1fdf64;
+  transform: translateY(-2px);
+}
+
+/* Content Display */
+.details-content-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.details-page .song-meta-header h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin: 0 0 8px 0;
+  color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.details-page .meta-artist {
+  font-size: 1.2rem;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.details-page .vibe-badge {
+  display: inline-flex;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.details-page .lyrics-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+}
+.details-page .lyrics-card h2 {
+  font-size: 1rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 0 16px 0;
+  letter-spacing: 0.05em;
+}
+.details-page .lyrics-body-text {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--text-main);
+  margin: 0;
+  white-space: pre-line;
+}
+
+/* Recs */
+.details-recommendations-section {
+  margin-top: 48px;
+  border-top: 1px solid var(--border);
+  padding-top: 32px;
+  width: 100%;
+}
+.details-recommendations-section h2 {
+  font-size: 1.3rem;
+  margin-bottom: 20px;
+  color: var(--text-main);
+}
+
+.details-page .rec-grid-shelf {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+/* Animations/Loaders */
+.details-status-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 0;
+  color: var(--text-muted);
+}
+.mood-pulse-text {
+  display: inline-block;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #1ed760;
+  animation: moodGlowPulse 2s infinite ease-in-out;
+}
+@keyframes moodGlowPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 4px rgba(255, 255, 255, 0);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.05);
+    text-shadow: 0 0 12px rgba(29, 185, 84, 0.6);
+    opacity: 1;
+  }
+}
