@@ -10,6 +10,9 @@ export function useSearchViewLogic() {
   const isRingSearching = ref(false);
   const permanentCustomMoods = ref([]);
 
+  // Track if spying has been disabled
+  const isSpyingStoppedOnce = ref(false);
+
   const moodMatrixConfig = {
     energetic: { label: "Energetic", emoticon: "⚡" },
     angry: { label: "Angry", emoticon: "🔥" },
@@ -55,7 +58,19 @@ export function useSearchViewLogic() {
     const savedHistory = localStorage.getItem("mimic_daily_mood_clicks");
     if (savedHistory) {
       try {
-        clickedMoodsHistory.value = JSON.parse(savedHistory);
+        const parsed = JSON.parse(savedHistory);
+
+        clickedMoodsHistory.value = parsed.map((item) => ({
+          ...item,
+          isDailyEligible:
+            item.isDailyEligible !== undefined ? item.isDailyEligible : true,
+          isWeeklyEligible:
+            item.isWeeklyEligible !== undefined ? item.isWeeklyEligible : true,
+          isMonthlyEligible:
+            item.isMonthlyEligible !== undefined
+              ? item.isMonthlyEligible
+              : true,
+        }));
       } catch (e) {
         console.error("Failed to parse mood history", e);
       }
@@ -63,6 +78,7 @@ export function useSearchViewLogic() {
 
     if (localStorage.getItem("mimic_privacy_shield") === "true") {
       isSpyingStopped.value = true;
+      isSpyingStoppedOnce.value = true;
     }
 
     const savedCustomMoods = localStorage.getItem("mimic_permanent_ai_moods");
@@ -178,14 +194,18 @@ export function useSearchViewLogic() {
 
   const handleTrackClick = (track) => {
     if (!isSpyingStopped.value) {
+      const now = Date.now();
       clickedMoodsHistory.value.push({
-        id: track.id || Date.now().toString(),
+        id: track.id || now.toString(),
         name: track.name || "Unknown Title",
         artist: track.artist || "Unknown Artist",
         image: track.image || "fallback.jpg",
         mood: track.mood || null,
         emoticon: track.emoticon || "🎵",
-        timestamp: Date.now(),
+        timestamp: now,
+        isDailyEligible: true,
+        isWeeklyEligible: true,
+        isMonthlyEligible: true,
       });
       localStorage.setItem(
         "mimic_daily_mood_clicks",
@@ -202,21 +222,41 @@ export function useSearchViewLogic() {
     }
     return [...history].reverse();
   });
+
   const clearOnlyVisualHistory = () => {
     clickedMoodsHistory.value = [];
     localStorage.removeItem("mimic_daily_mood_clicks");
   };
 
+  // Clear daily, keep weekly/monthly
   const purgeClickHistory = () => {
-    clickedMoodsHistory.value = [];
-    localStorage.removeItem("mimic_daily_mood_clicks");
     isSpyingStopped.value = true;
+    isSpyingStoppedOnce.value = true;
     localStorage.setItem("mimic_privacy_shield", "true");
+
+    clickedMoodsHistory.value = clickedMoodsHistory.value.map((item) => ({
+      ...item,
+      isDailyEligible: false,
+    }));
+
+    localStorage.setItem(
+      "mimic_daily_mood_clicks",
+      JSON.stringify(clickedMoodsHistory.value),
+    );
   };
 
   const restoreMoodRingFeature = () => {
     isSpyingStopped.value = false;
     localStorage.setItem("mimic_privacy_shield", "false");
+  };
+
+  // Daily Mood After Spying Stopped
+  const handleQuestionMarkClick = () => {
+    if (isSpyingStoppedOnce.value && activeRingTab.value === "daily") {
+      alert(
+        "You didn't want me following you around, You'll have to start over. Pick some songs and I'll figure out your mood.",
+      );
+    }
   };
 
   const getAggregateMood = (sourceArray) => {
@@ -259,7 +299,11 @@ export function useSearchViewLogic() {
     const history = clickedMoodsHistory.value || [];
     const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
     return getAggregateMood(
-      history.filter((item) => !item.timestamp || item.timestamp >= oneDayAgo),
+      history.filter(
+        (item) =>
+          item.isDailyEligible &&
+          (!item.timestamp || item.timestamp >= oneDayAgo),
+      ),
     );
   });
 
@@ -267,7 +311,11 @@ export function useSearchViewLogic() {
     const history = clickedMoodsHistory.value || [];
     const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
     return getAggregateMood(
-      history.filter((item) => !item.timestamp || item.timestamp >= oneWeekAgo),
+      history.filter(
+        (item) =>
+          item.isWeeklyEligible &&
+          (!item.timestamp || item.timestamp >= oneWeekAgo),
+      ),
     );
   });
 
@@ -276,7 +324,9 @@ export function useSearchViewLogic() {
     const oneMonthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
     return getAggregateMood(
       history.filter(
-        (item) => !item.timestamp || item.timestamp >= oneMonthAgo,
+        (item) =>
+          item.isMonthlyEligible &&
+          (!item.timestamp || item.timestamp >= oneMonthAgo),
       ),
     );
   });
@@ -351,6 +401,7 @@ export function useSearchViewLogic() {
     selectedMoodFilter,
     clickedMoodsHistory,
     isSpyingStopped,
+    isSpyingStoppedOnce,
     isRingSearching,
     activeLegendMoods,
     searchQuery,
@@ -368,5 +419,6 @@ export function useSearchViewLogic() {
     triggerAlternativeSearch,
     goToSongDetailsPage,
     logout,
+    handleQuestionMarkClick,
   };
 }

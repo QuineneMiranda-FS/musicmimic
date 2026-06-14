@@ -231,7 +231,11 @@
             <template v-if="!currentSelectedMood">
               <div class="mood-ring-orb-container">
                 <div class="mood-ring-outer-halo ring-halo-empty">
-                  <div class="mood-ring-inner-core">
+                  <div
+                    class="mood-ring-inner-core"
+                    @click="handleQuestionMarkClick"
+                    style="cursor: pointer"
+                  >
                     <span class="mood-ring-emoji-avatar">?</span>
                   </div>
                 </div>
@@ -329,7 +333,7 @@
         </section>
 
         <section
-          v-if="!isSpyingStopped && clickedMoodsHistory.length"
+          v-if="clickedMoodsHistory.length"
           class="column-panel history-full-row-panel animate-fade-in"
         >
           <div class="history-section-header">
@@ -346,14 +350,23 @@
               v-for="(track, index) in reversedHistory"
               :key="track.id + '-' + index"
               class="card track-card history-mini-card"
-              :class="
-                track.mood ? `mood-${track.mood.trim().toLowerCase()}` : ''
-              "
-              @click="goToSongDetailsPage(track)"
             >
+              <div class="history-period-badges">
+                <span v-if="track.isDailyEligible" class="badge badge-day"
+                  >D</span
+                >
+                <span v-if="track.isWeeklyEligible" class="badge badge-week"
+                  >W</span
+                >
+                <span v-if="track.isMonthlyEligible" class="badge badge-month"
+                  >M</span
+                >
+              </div>
+
               <div class="card-media-wrapper">
                 <img :src="track.image || 'fallback.jpg'" alt="Album Art" />
               </div>
+
               <div class="card-text-block">
                 <div class="track-header">
                   <h3>{{ track.name }}</h3>

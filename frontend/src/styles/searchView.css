@@ -552,3 +552,45 @@
     grid-template-columns: 1fr;
   }
 }
+
+.history-mini-card {
+  position: relative;
+}
+
+.history-period-badges {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  gap: 4px;
+  z-index: 10;
+}
+
+.badge {
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.badge-day {
+  background-color: #ff5e62;
+}
+.badge-week {
+  background-color: #ff9966;
+}
+.badge-month {
+  background-color: #1ed760;
+}
+
+.clickable-question {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.clickable-question:hover {
+  transform: scale(1.1);
+}
