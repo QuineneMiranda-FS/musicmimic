@@ -38,7 +38,7 @@ router.get("/search", authenticateJWT, async (req, res, next) => {
         .json({ error: "Query parameter 'q' is required." });
     }
 
-    // Fetch user record from db
+    // Fetch user record from DB
     const dbUser = await User.findByPk(req.user.userId);
     if (!dbUser || !dbUser.spotifyAccessToken) {
       return res
@@ -64,29 +64,25 @@ router.get("/search", authenticateJWT, async (req, res, next) => {
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
-
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
-
           try {
             console.log(
               `[Spotify Auth] Access token expired for user ${dbUser.id}. Refreshing...`,
             );
-
             const newAccessToken = await refreshSpotifyToken(
               dbUser.spotifyRefreshToken,
             );
 
-            // Update db
+            // Update DB
             dbUser.spotifyAccessToken = newAccessToken;
             await dbUser.save();
 
-            // New Token
+            // Update New Token headers
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
-            return axios(originalRequest);
+            return spotifyClient(originalRequest);
           } catch (refreshError) {
-            // Invalid token
             console.error(
               "[Spotify Auth] Critical: Refresh token failed.",
               refreshError.message,
@@ -99,8 +95,15 @@ router.get("/search", authenticateJWT, async (req, res, next) => {
     );
 
     // Request
-    const spotifyUrl = `/search?q=${encodeURIComponent(query)}&type=track,artist,album&limit=10`;
-    const searchResponse = await spotifyClient.get(spotifyUrl);
+    const spotifyUrl = "/search";
+    const searchResponse = await spotifyClient.get(spotifyUrl, {
+      params: {
+        q: query,
+        type: "track,artist,album",
+        limit: 9,
+        // Evilness Spotify limit is 10 for apps running in Dev ..wanted 12, chgd to 9 for UI
+      },
+    });
 
     // Results (with external Spotify URLs)
     const tracks =

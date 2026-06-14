@@ -42,6 +42,7 @@ async function analyzeTrackMood(title, artist, lyricsText) {
     const aiResponse = await openai.chat.completions.create({
       model: "llama3",
       response_format: { type: "json_object" },
+      //Heh Ask AI how to ask AI
       messages: [
         {
           role: "system",
@@ -117,10 +118,10 @@ async function generateRecommendations(title, artist, mood) {
       messages: [
         {
           role: "system",
-          content: `You are a music recommendation engine. Your task is to generate 9 real, well-known songs that perfectly match the requested mood vibe. 
+          content: `You are a music recommendation engine. Your task is to generate 12 real, well-known songs that perfectly match the requested mood vibe. 
           
           CRITICAL: You must return a RAW JSON object ONLY. 
-          The JSON root must have a "tracks" key containing an array of 9 objects.
+          The JSON root must have a "tracks" key containing an array of 12 objects.
           Each object in the array must strictly have these fields:
           - "title": (The name of the recommended song)
           - "artist": (The artist name)
@@ -134,7 +135,7 @@ async function generateRecommendations(title, artist, mood) {
         },
         {
           role: "user",
-          content: `The user is listening to "${title}" by "${artist}", which has an analyzed mood of "${mood}". Suggest 9 alternative matching tracks.`,
+          content: `The user is listening to "${title}" by "${artist}", which has an analyzed mood of "${mood}". Suggest 12 alternative matching tracks.`,
         },
       ],
     });
