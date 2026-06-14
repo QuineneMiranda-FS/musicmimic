@@ -10,7 +10,7 @@ export function useSearchViewLogic() {
   const isRingSearching = ref(false);
   const permanentCustomMoods = ref([]);
 
-  // Track if spying has been disabled
+  // Track if spying has been disabled at least once
   const isSpyingStoppedOnce = ref(false);
 
   const moodMatrixConfig = {
