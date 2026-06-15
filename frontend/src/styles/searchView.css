@@ -638,3 +638,34 @@
   color: #777;
   margin-bottom: 6px;
 }
+/* Delete History */
+.history-mini-card {
+  position: relative;
+}
+
+.delete-history-item-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #ffffff;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 16px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition:
+    background-color 0.2s ease,
+    transform 0.1s ease;
+}
+
+.delete-history-item-btn:hover {
+  background: #ef4444;
+  transform: scale(1.1);
+}

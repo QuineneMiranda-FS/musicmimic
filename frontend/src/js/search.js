@@ -1,5 +1,5 @@
 import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import { useRouter } from "vue-router"; // Ensure this is imported
 import axios from "axios";
 
 const username = ref("Authenticated Listener");
@@ -68,10 +68,10 @@ export function useSearchLogic() {
   // Redirection router push function
   function goToSongDetailsPage(track) {
     router.push({
-      name: "MoodSearch",
+      name: "SongDetails",
       query: {
         id: track.id,
-        title: track.name,
+        title: track.name || track.title,
         artist: track.artist,
         mood: track.mood || "Analyzing...",
         emoticon: track.emoticon || "🎵",

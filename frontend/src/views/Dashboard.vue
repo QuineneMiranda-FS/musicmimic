@@ -201,8 +201,16 @@
               :class="
                 track.mood ? `mood-${track.mood.trim().toLowerCase()}` : ''
               "
-              @click="goToSongDetailsPage(track)"
+              @click="handleTrackClick(track)"
             >
+              <button
+                class="delete-history-item-btn"
+                @click.stop="deleteSongFromHistory(track.id)"
+                title="Remove song from history & mood calculations"
+              >
+                &times;
+              </button>
+
               <div class="history-period-badges">
                 <span v-if="track.isDailyEligible" class="badge badge-day"
                   >D</span
@@ -263,6 +271,7 @@ const {
   triggerAlternativeSearch,
   goToSongDetailsPage,
   handleQuestionMarkClick,
+  deleteSongFromHistory,
 } = useSearchViewLogic();
 </script>
 

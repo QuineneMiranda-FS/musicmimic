@@ -1,4 +1,5 @@
 import { ref, computed, nextTick, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { useSearchLogic } from "./search.js";
 import { useMoodLogic } from "./mood.js";
 import { useHistoryLogic } from "./history.js";
@@ -149,24 +150,47 @@ export function useSearchViewLogic() {
   const handleTrackClick = (track) => {
     if (!moodLogic.isSpyingStopped.value) {
       const now = Date.now();
-      moodLogic.clickedMoodsHistory.value.push({
-        id: track.id || now.toString(),
-        name: track.name || "Unknown Title",
-        artist: track.artist || "Unknown Artist",
-        image: track.image || "fallback.jpg",
-        mood: track.mood || null,
-        emoticon: track.emoticon || "🎵",
-        timestamp: now,
-        isDailyEligible: true,
-        isWeeklyEligible: true,
-        isMonthlyEligible: true,
-      });
-      localStorage.setItem(
-        "mimic_daily_mood_clicks",
-        JSON.stringify(moodLogic.clickedMoodsHistory.value),
+
+      const isAlreadyInHistory = moodLogic.clickedMoodsHistory.value.some(
+        (t) => t.id === track.id,
       );
+
+      if (!isAlreadyInHistory) {
+        moodLogic.clickedMoodsHistory.value.push({
+          id: track.id || now.toString(),
+          name: track.name || track.title || "Unknown Title",
+          artist: track.artist || "Unknown Artist",
+          image: track.image || "fallback.jpg",
+          mood: track.mood || null,
+          emoticon: track.emoticon || "🎵",
+          timestamp: now,
+          isDailyEligible: true,
+          isWeeklyEligible: true,
+          isMonthlyEligible: true,
+        });
+
+        localStorage.setItem(
+          "mimic_daily_mood_clicks",
+          JSON.stringify(moodLogic.clickedMoodsHistory.value),
+        );
+      }
     }
+
     searchLogic.goToSongDetailsPage(track);
+  };
+
+  const deleteSongFromHistory = (trackId) => {
+    if (!moodLogic.clickedMoodsHistory.value) return;
+
+    moodLogic.clickedMoodsHistory.value =
+      moodLogic.clickedMoodsHistory.value.filter(
+        (track) => track.id !== trackId,
+      );
+
+    localStorage.setItem(
+      "mimic_daily_mood_clicks",
+      JSON.stringify(moodLogic.clickedMoodsHistory.value),
+    );
   };
 
   const reversedHistory = computed(() => {
@@ -264,6 +288,7 @@ export function useSearchViewLogic() {
     clearOnlyVisualHistory,
     triggerAlternativeSearch,
     handleQuestionMarkClick,
+    deleteSongFromHistory,
 
     ...searchLogic,
     ...moodLogic,
