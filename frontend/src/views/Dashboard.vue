@@ -1,10 +1,5 @@
 <template>
   <div class="search-page">
-    <header>
-      <h1>Music Mimic Dashboard</h1>
-      <button @click="logout" class="spotify-btn logout-btn">Log Out</button>
-    </header>
-
     <div class="search-bar-container">
       <input
         v-model="searchQuery"
@@ -172,165 +167,18 @@
           </div>
         </section>
 
-        <section class="column-panel mood-ring-sidebar-panel">
-          <div
-            v-if="isSpyingStopped"
-            class="mood-ring-box-wrapper lava-lamp-wrapper animate-fade-in"
-          >
-            <h2>Lincoln's Lava Lamp</h2>
-            <div class="lava-lamp-container">
-              <div class="lamp-glass circle-lamp">
-                <div class="lava-blob blob-1"></div>
-                <div class="lava-blob blob-2"></div>
-                <div class="lava-blob blob-3"></div>
-                <div class="lava-blob blob-4"></div>
-              </div>
-            </div>
-            <div class="mood-ring-interactive-dialogue">
-              <p class="privacy-notice-text">
-                Don't mind me... <br />I'm going to watch my Lava Lamp.<br />I
-                won't even look at your song choices.
-              </p>
-              <div class="mood-ring-cta-block">
-                <button
-                  @click="restoreMoodRingFeature"
-                  class="ring-mood-btn action-restore-btn animate-pulse-glow"
-                >
-                  🔓 Admit you miss me and I'll let you have your mood ring
-                  back.
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div v-else class="mood-ring-box-wrapper animate-fade-in">
-            <div class="tabs-header-row sidebar-tabs-header">
-              <button
-                class="tab-nav-btn sidebar-tab-btn"
-                :class="{ 'is-active': activeRingTab === 'daily' }"
-                @click="activeRingTab = 'daily'"
-              >
-                Daily
-              </button>
-              <button
-                class="tab-nav-btn sidebar-tab-btn"
-                :class="{ 'is-active': activeRingTab === 'weekly' }"
-                @click="activeRingTab = 'weekly'"
-              >
-                Weekly
-              </button>
-              <button
-                class="tab-nav-btn sidebar-tab-btn"
-                :class="{ 'is-active': activeRingTab === 'monthly' }"
-                @click="activeRingTab = 'monthly'"
-              >
-                Monthly
-              </button>
-            </div>
-
-            <template v-if="!currentSelectedMood">
-              <div class="mood-ring-orb-container">
-                <div class="mood-ring-outer-halo ring-halo-empty">
-                  <div
-                    class="mood-ring-inner-core"
-                    @click="handleQuestionMarkClick"
-                    style="cursor: pointer"
-                  >
-                    <span class="mood-ring-emoji-avatar">?</span>
-                  </div>
-                </div>
-              </div>
-              <div class="mood-ring-interactive-dialogue">
-                <p class="mood-statement-text">
-                  Pick some songs and I'll figure out your
-                  {{ activeRingTab }} mood!
-                </p>
-              </div>
-            </template>
-
-            <template v-else>
-              <div class="mood-ring-orb-container">
-                <div
-                  class="mood-ring-outer-halo"
-                  :class="`ring-halo-${currentSelectedMood.id}`"
-                >
-                  <div class="mood-ring-inner-core">
-                    <span class="mood-ring-emoji-avatar">{{
-                      currentSelectedMood.emoticon
-                    }}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="mood-ring-interactive-dialogue">
-                <p class="mood-statement-text">
-                  Based on recent choices, your
-                  <span class="timeframe-label">{{ activeRingTab }}</span> mood
-                  is rather
-                  <span
-                    class="highlighted-mood-span"
-                    :class="`text-color-${currentSelectedMood.id}`"
-                  >
-                    {{ currentSelectedMood.label }} </span
-                  >.
-                </p>
-
-                <div class="mood-ring-cta-block">
-                  <p class="cta-question-prompt">What Do You Want?</p>
-                  <div class="cta-actions-button-row">
-                    <button
-                      @click="triggerAlternativeSearch('same')"
-                      class="ring-mood-btn action-match-btn"
-                    >
-                      More {{ currentSelectedMood.label }} Songs
-                    </button>
-                    <button
-                      @click="triggerAlternativeSearch('opposite')"
-                      class="ring-mood-btn action-flip-btn"
-                    >
-                      {{ oppositeMoodButtonText }}
-                    </button>
-                  </div>
-                </div>
-
-                <div class="mood-ring-privacy-footer">
-                  <button
-                    @click="purgeClickHistory"
-                    class="privacy-stop-spying-btn"
-                  >
-                    🔒 Click Here to Make Me Stop Spying on Your Choices
-                  </button>
-                </div>
-              </div>
-            </template>
-          </div>
-          <aside class="mood-ring-column">
-            <div class="mood-ring-card"></div>
-
-            <div class="mood-legend-panel">
-              <h3>Mood Key</h3>
-              <div class="legend-grid">
-                <button
-                  class="legend-pill-btn"
-                  :class="{ active: selectedMoodFilter === null }"
-                  @click="selectedMoodFilter = null"
-                >
-                  🌈 All Tracks
-                </button>
-
-                <button
-                  v-for="mood in activeLegendMoods"
-                  :key="mood.id"
-                  class="legend-pill-btn"
-                  :class="{ active: selectedMoodFilter === mood.id }"
-                  @click="selectedMoodFilter = mood.id"
-                >
-                  {{ mood.emoticon }} {{ mood.name }}
-                </button>
-              </div>
-            </div>
-          </aside>
-        </section>
+        <MoodDisplay
+          v-model:activeRingTab="activeRingTab"
+          v-model:selectedMoodFilter="selectedMoodFilter"
+          :current-selected-mood="currentSelectedMood"
+          :opposite-mood-button-text="oppositeMoodButtonText"
+          :is-spying-stopped="isSpyingStopped"
+          :active-legend-moods="activeLegendMoods"
+          @restore-spying="restoreMoodRingFeature"
+          @stop-spying="purgeClickHistory"
+          @trigger-alternative="triggerAlternativeSearch"
+          @question-click="handleQuestionMarkClick"
+        />
 
         <section
           v-if="clickedMoodsHistory.length"
@@ -350,6 +198,10 @@
               v-for="(track, index) in reversedHistory"
               :key="track.id + '-' + index"
               class="card track-card history-mini-card"
+              :class="
+                track.mood ? `mood-${track.mood.trim().toLowerCase()}` : ''
+              "
+              @click="goToSongDetailsPage(track)"
             >
               <div class="history-period-badges">
                 <span v-if="track.isDailyEligible" class="badge badge-day"
@@ -386,10 +238,12 @@
 
 <script setup>
 import { useSearchViewLogic } from "../js/searchViewLogic.js";
+import MoodDisplay from "../components/MoodDisplay.vue";
 
 const {
   activeTab,
   activeRingTab,
+  selectedMoodFilter,
   clickedMoodsHistory,
   isSpyingStopped,
   isRingSearching,
@@ -408,7 +262,7 @@ const {
   restoreMoodRingFeature,
   triggerAlternativeSearch,
   goToSongDetailsPage,
-  logout,
+  handleQuestionMarkClick,
 } = useSearchViewLogic();
 </script>
 

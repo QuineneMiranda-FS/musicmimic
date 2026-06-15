@@ -23,7 +23,7 @@
     sans-serif;
 }
 
-/* --- Main --- */
+/*  Main  */
 html {
   box-sizing: border-box;
 }
@@ -68,38 +68,106 @@ h2 {
   border-bottom: 1px solid var(--border);
 }
 
-/* --- Layout Containers --- */
+/*  Layout Containers  */
 #app-container,
 #app {
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
 }
 
 #app {
   max-width: 100%;
   margin: 0 auto;
-  display: flex;
-  flex-direction: column;
 }
 
+/* Wrapper */
+.page-container,
 .search-page,
 .details-page {
   padding: 40px 32px;
   width: 100%;
-}
-
-.details-page {
   max-width: 1200px;
   margin: 0 auto;
 }
 
-header {
+/*  App Header Nav  */
+.app-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32px;
+  background-color: #000000;
+  padding: 1.25rem 2rem;
+  border-bottom: 1px solid var(--border);
 }
 
-/* --- Search Controls --- */
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.brand-title {
+  font-size: 1.25rem;
+  margin: 0;
+  font-weight: 700;
+}
+
+.header-nav {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.nav-link {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover,
+.active-link {
+  color: var(--accent);
+}
+
+/*  Login View  */
+.login-page-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 80vh;
+}
+
+.login-container {
+  background-color: var(--bg-card);
+  padding: 3rem;
+  border-radius: 8px;
+  text-align: center;
+  max-width: 400px;
+  box-shadow: var(--shadow);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-container h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  border: none;
+  padding: 0;
+}
+
+.login-container p {
+  color: var(--text-muted);
+  margin-bottom: 2rem;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+/*  Search Controls  */
 .search-bar-container {
   display: flex;
   gap: 12px;
@@ -132,7 +200,7 @@ header {
   color: var(--text-placeholder);
 }
 
-/* --- Elements & Buttons --- */
+/*  Elements & Buttons  */
 .btn-base {
   display: inline-flex;
   align-items: center;
@@ -146,11 +214,7 @@ header {
     background-color 0.2s ease;
 }
 
-.spotify-btn {
-  composes: btn-base;
-}
-
-/* Shared Buttons */
+/* Buttons  */
 .spotify-btn,
 .spotify-link-btn {
   background-color: var(--accent);
@@ -196,26 +260,23 @@ header {
   font-size: 1.1rem;
 }
 
-.login-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 80vh;
-  text-align: center;
-}
-
 .logout-btn {
   border: 1px solid var(--text-muted);
   color: var(--text-main);
   padding: 8px 24px;
   font-size: 0.8rem;
+  background: transparent;
+  border-radius: 500px;
+  cursor: pointer;
+  transition: transform 0.1s ease;
 }
 .logout-btn:hover {
   transform: scale(1.04);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
-/* --- Grid & Content --- */
+/*  Grid & Content  */
 .results-area,
 .details-recommendations-section {
   width: 100%;
@@ -241,7 +302,78 @@ header {
   gap: 8px;
 }
 
-/* Cards */
+/*  Track List   */
+.track-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.track-item {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 12px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.track-item:hover {
+  background-color: var(--bg-card-hover);
+  transform: translateX(4px);
+}
+
+.track-art {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  margin-right: 16px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.track-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.track-name {
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-artist {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-mood-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background-color: var(--bg-input);
+  color: var(--text-main);
+  border: 1px solid var(--border-light);
+}
+
+/*  Cards  */
 .search-result-card,
 .history-mini-card,
 .rec-mini-card,
@@ -265,7 +397,6 @@ header {
   margin: 0;
 }
 
-/* Card Hover */
 .search-result-card:hover,
 .history-mini-card:hover,
 .rec-mini-card:hover,
@@ -275,7 +406,7 @@ header {
   border-color: #444;
 }
 
-/* Image Wrappers */
+/* Image  */
 .card-media-wrapper,
 .rec-image-wrapper {
   width: 100% !important;
@@ -300,7 +431,6 @@ header {
   border-radius: 50%;
 }
 
-/* Text */
 .card-text-block,
 .rec-card-info {
   display: flex;
@@ -311,7 +441,6 @@ header {
   text-align: left;
 }
 
-/* Header */
 .search-result-card h3,
 .history-mini-card h3,
 .rec-mini-card h3,
@@ -326,7 +455,6 @@ header {
   text-overflow: ellipsis;
 }
 
-/* Subtitle */
 .search-result-card p,
 .history-mini-card p,
 .rec-mini-card p,
@@ -340,7 +468,69 @@ header {
   text-overflow: ellipsis;
 }
 
-/* --- State/Actions --- */
+/*  Mood Visuals  */
+.mood-display-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem 0;
+  width: 100%;
+}
+
+.mood-ring {
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: conic-gradient(from 0deg, var(--accent), #121212, var(--accent));
+  padding: 16px;
+  box-shadow: 0 0 40px rgba(29, 185, 84, 0.15);
+  transition:
+    background 0.8s ease,
+    box-shadow 0.8s ease;
+}
+
+.mood-core {
+  background-color: var(--bg-base);
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+}
+
+.mood-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 2px;
+  margin-bottom: 4px;
+}
+
+.mood-status {
+  margin: 0;
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--text-main);
+  text-transform: capitalize;
+}
+
+.mood-ring.energetic {
+  background: conic-gradient(from 180deg, #ffdd53, #ff5353, #ffdd53);
+  box-shadow: 0 0 50px rgba(255, 83, 83, 0.4);
+}
+
+.mood-ring.mellow {
+  background: conic-gradient(from 90deg, #537fff, #a253ff, #537fff);
+  box-shadow: 0 0 50px rgba(162, 83, 255, 0.4);
+}
+
+/*  States/Status  */
 .track-header {
   display: flex;
   justify-content: space-between;
@@ -378,7 +568,6 @@ header {
   pointer-events: none;
 }
 
-/* --- UI Elements --- */
 .status-message,
 .details-status-msg {
   display: flex;
@@ -428,7 +617,7 @@ header {
   text-align: center;
 }
 
-/* --- Song Details  --- */
+/*  Song Details  */
 .details-nav {
   margin-bottom: 24px;
 }
@@ -511,7 +700,7 @@ header {
   color: var(--accent);
 }
 
-/* --- Lyrics --- */
+/*  Lyrics  */
 .lyrics-card {
   background-color: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border);
@@ -546,7 +735,7 @@ header {
   margin-top: 20px;
 }
 
-/* --- Audio Player --- */
+/*  Audio Player  */
 .player-container {
   margin: 1.5rem auto 0 auto;
   display: flex;
@@ -584,7 +773,7 @@ header {
   border-radius: 6px;
 }
 
-/* --- Animations --- */
+/*  Animations  */
 .fade-enter-active,
 .fade-leave-active {
   transition:
@@ -612,7 +801,7 @@ header {
   }
 }
 
-/* --- Responsive Layouts --- */
+/*  Responsive Layouts  */
 @media (max-width: 900px) {
   .dashboard-columns {
     grid-template-columns: 1fr;

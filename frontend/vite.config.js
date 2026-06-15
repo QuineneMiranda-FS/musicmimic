@@ -11,6 +11,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: "127.0.0.1",
     proxy: {
       "/api": {
         target: "http://127.0.0.1:3000",
@@ -18,5 +19,9 @@ export default defineConfig({
         secure: false,
       },
     },
+  },
+  // Warning for when Vite makes an update that breaks app
+  future: {
+    warnInvertedFilter: true,
   },
 });

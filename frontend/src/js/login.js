@@ -9,7 +9,7 @@ export function useLoginLogic() {
     const token = route.query.token;
     if (token) {
       localStorage.setItem("app_jwt", token);
-      router.push("/search");
+      router.push("/dashboard");
     }
   });
 }

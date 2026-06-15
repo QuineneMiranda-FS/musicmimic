@@ -1,15 +1,13 @@
 <template>
   <div id="app-container">
+    <AppHeader />
     <main class="main-content">
-      <RouterView v-slot="{ Component }">
-        <KeepAlive>
-          <component :is="Component" />
-        </KeepAlive>
-      </RouterView>
+      <RouterView />
     </main>
   </div>
 </template>
 
 <script setup>
 import { RouterView } from "vue-router";
+import AppHeader from "./components/AppHeader.vue";
 </script>

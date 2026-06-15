@@ -1,17 +1,16 @@
 import { ref, computed, nextTick, onMounted } from "vue";
-import { useSearchLogic } from "../js/search";
+import { useSearchLogic } from "./search.js";
+import { useMoodLogic } from "./mood.js";
+import { useHistoryLogic } from "./history.js";
 
 export function useSearchViewLogic() {
   const activeTab = ref("tracks");
-  const activeRingTab = ref("daily");
   const selectedMoodFilter = ref(null);
-  const clickedMoodsHistory = ref([]);
-  const isSpyingStopped = ref(false);
   const isRingSearching = ref(false);
-  const permanentCustomMoods = ref([]);
 
-  // Track if spying has been disabled at least once
-  const isSpyingStoppedOnce = ref(false);
+  const searchLogic = useSearchLogic();
+  const moodLogic = useMoodLogic();
+  const historyLogic = useHistoryLogic(searchLogic.goToSongDetailsPage);
 
   const moodMatrixConfig = {
     energetic: { label: "Energetic", emoticon: "⚡" },
@@ -26,67 +25,21 @@ export function useSearchViewLogic() {
     grounded: { label: "Grounded", emoticon: "🪵" },
   };
 
-  const moodOppositesMap = {
-    chill: { label: "Energized", query: "Energetic edm rock" },
-    energetic: { label: "Chill", query: "Chill ambient lo-fi" },
-    upbeat: { label: "Chill", query: "Chill ambient lo-fi" },
-    happy: { label: "Sad", query: "Melancholic somber sad blues" },
-    joyful: { label: "Melancholic", query: "Melancholic somber sad blues" },
-    melancholic: { label: "Happy", query: "Happy cheerful pop disco" },
-    sad: { label: "Happy", query: "Happy cheerful pop disco" },
-    angry: { label: "Peaceful", query: "Chill peaceful acoustic meditative" },
-    romantic: { label: "Mysterious", query: "Dark mysterious gothic" },
-    mysterious: { label: "Romantic", query: "Romantic bright pop" },
-    ethereal: {
-      label: "Grounded",
-      query: "Acoustic indie folk structural roots",
-    },
-    grounded: { label: "Ethereal", query: "Ambient synth dream pop" },
-  };
-
-  const {
-    searchQuery,
-    hasSearched,
-    results,
-    executeSearch,
-    analyzeMoodInline,
-    goToSongDetailsPage,
-    logout,
-  } = useSearchLogic();
-
   onMounted(() => {
-    const savedHistory = localStorage.getItem("mimic_daily_mood_clicks");
-    if (savedHistory) {
-      try {
-        const parsed = JSON.parse(savedHistory);
-
-        clickedMoodsHistory.value = parsed.map((item) => ({
-          ...item,
-          isDailyEligible:
-            item.isDailyEligible !== undefined ? item.isDailyEligible : true,
-          isWeeklyEligible:
-            item.isWeeklyEligible !== undefined ? item.isWeeklyEligible : true,
-          isMonthlyEligible:
-            item.isMonthlyEligible !== undefined
-              ? item.isMonthlyEligible
-              : true,
-        }));
-      } catch (e) {
-        console.error("Failed to parse mood history", e);
-      }
-    }
-
-    if (localStorage.getItem("mimic_privacy_shield") === "true") {
-      isSpyingStopped.value = true;
-      isSpyingStoppedOnce.value = true;
-    }
-
     const savedCustomMoods = localStorage.getItem("mimic_permanent_ai_moods");
     if (savedCustomMoods) {
       try {
-        permanentCustomMoods.value = JSON.parse(savedCustomMoods);
+        moodLogic.permanentCustomMoods.value = JSON.parse(savedCustomMoods);
       } catch (e) {
         console.error("Failed to parse custom moods", e);
+      }
+    }
+    const savedHistory = localStorage.getItem("mimic_daily_mood_clicks");
+    if (savedHistory && moodLogic.clickedMoodsHistory) {
+      try {
+        moodLogic.clickedMoodsHistory.value = JSON.parse(savedHistory);
+      } catch (e) {
+        console.error("Failed to parse history ", e);
       }
     }
   });
@@ -95,7 +48,7 @@ export function useSearchViewLogic() {
     const lowerName = normalizedName.toLowerCase();
     if (moodMatrixConfig[lowerName]) return;
 
-    const alreadySaved = permanentCustomMoods.value.some(
+    const alreadySaved = moodLogic.permanentCustomMoods.value.some(
       (item) => item.id === lowerName,
     );
     if (!alreadySaved) {
@@ -105,10 +58,10 @@ export function useSearchViewLogic() {
         emoticon: emoticon || "🎵",
         legendGroup: legendGroup ? legendGroup.toLowerCase() : "chill",
       };
-      permanentCustomMoods.value.push(newMoodObj);
+      moodLogic.permanentCustomMoods.value.push(newMoodObj);
       localStorage.setItem(
         "mimic_permanent_ai_moods",
-        JSON.stringify(permanentCustomMoods.value),
+        JSON.stringify(moodLogic.permanentCustomMoods.value),
       );
     }
   };
@@ -157,16 +110,17 @@ export function useSearchViewLogic() {
       },
     ];
 
-    permanentCustomMoods.value.forEach((customMood) => {
+    (moodLogic.permanentCustomMoods.value || []).forEach((customMood) => {
       if (!baseLegend.some((item) => item.id === customMood.id)) {
         baseLegend.push(customMood);
       }
     });
 
     const allAvailableSongs = [
-      ...(results.value?.tracks || []),
-      ...(clickedMoodsHistory.value || []),
+      ...(searchLogic.results.value?.tracks || []),
+      ...(moodLogic.clickedMoodsHistory.value || []),
     ];
+
     allAvailableSongs.forEach((track) => {
       if (track.mood) {
         const normalizedName = track.mood.trim();
@@ -193,9 +147,9 @@ export function useSearchViewLogic() {
   });
 
   const handleTrackClick = (track) => {
-    if (!isSpyingStopped.value) {
+    if (!moodLogic.isSpyingStopped.value) {
       const now = Date.now();
-      clickedMoodsHistory.value.push({
+      moodLogic.clickedMoodsHistory.value.push({
         id: track.id || now.toString(),
         name: track.name || "Unknown Title",
         artist: track.artist || "Unknown Artist",
@@ -209,154 +163,46 @@ export function useSearchViewLogic() {
       });
       localStorage.setItem(
         "mimic_daily_mood_clicks",
-        JSON.stringify(clickedMoodsHistory.value),
+        JSON.stringify(moodLogic.clickedMoodsHistory.value),
       );
     }
-    goToSongDetailsPage(track);
+    searchLogic.goToSongDetailsPage(track);
   };
 
   const reversedHistory = computed(() => {
-    const history = clickedMoodsHistory.value;
-    if (!history || !Array.isArray(history) || history.length === 0) {
-      return [];
-    }
+    const history = moodLogic.clickedMoodsHistory.value;
+    if (!history || !Array.isArray(history) || history.length === 0) return [];
     return [...history].reverse();
   });
 
   const clearOnlyVisualHistory = () => {
-    clickedMoodsHistory.value = [];
+    moodLogic.clickedMoodsHistory.value = [];
     localStorage.removeItem("mimic_daily_mood_clicks");
   };
 
-  // Clear daily, keep weekly/monthly
-  const purgeClickHistory = () => {
-    isSpyingStopped.value = true;
-    isSpyingStoppedOnce.value = true;
-    localStorage.setItem("mimic_privacy_shield", "true");
-
-    clickedMoodsHistory.value = clickedMoodsHistory.value.map((item) => ({
-      ...item,
-      isDailyEligible: false,
-    }));
-
-    localStorage.setItem(
-      "mimic_daily_mood_clicks",
-      JSON.stringify(clickedMoodsHistory.value),
-    );
-  };
-
-  const restoreMoodRingFeature = () => {
-    isSpyingStopped.value = false;
-    localStorage.setItem("mimic_privacy_shield", "false");
-  };
-
-  // Daily Mood After Spying Stopped
   const handleQuestionMarkClick = () => {
-    if (isSpyingStoppedOnce.value && activeRingTab.value === "daily") {
+    if (
+      moodLogic.isSpyingStoppedOnce.value &&
+      moodLogic.activeRingTab.value === "daily"
+    ) {
       alert(
-        "You didn't want me following you around, You'll have to start over. Pick some songs and I'll figure out your mood.",
+        "You didn't want me following you around. You'll have to start over. Pick some songs and I'll figure out your mood.",
       );
     }
   };
-
-  const getAggregateMood = (sourceArray) => {
-    if (!sourceArray || !sourceArray.length) return null;
-    const counts = {};
-    sourceArray.forEach((item) => {
-      if (item.mood) {
-        const normalizedMood = item.mood.trim().toLowerCase();
-        counts[normalizedMood] = (counts[normalizedMood] || 0) + 1;
-      }
-    });
-
-    const topMoodKey = Object.keys(counts).reduce(
-      (a, b) => (counts[a] > counts[b] ? a : b),
-      "",
-    );
-    if (!topMoodKey) return null;
-
-    let moodConfig = moodMatrixConfig[topMoodKey];
-    if (!moodConfig) {
-      const foundCustom = permanentCustomMoods.value.find(
-        (item) => item.id === topMoodKey,
-      );
-      if (foundCustom) {
-        moodConfig = {
-          label: foundCustom.name,
-          emoticon: foundCustom.emoticon,
-        };
-      }
-    }
-
-    return {
-      id: topMoodKey,
-      label: moodConfig ? moodConfig.label : "Alternative",
-      emoticon: moodConfig ? moodConfig.emoticon : "🎵",
-    };
-  };
-
-  const dominantMood = computed(() => {
-    const history = clickedMoodsHistory.value || [];
-    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    return getAggregateMood(
-      history.filter(
-        (item) =>
-          item.isDailyEligible &&
-          (!item.timestamp || item.timestamp >= oneDayAgo),
-      ),
-    );
-  });
-
-  const weeklyMood = computed(() => {
-    const history = clickedMoodsHistory.value || [];
-    const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    return getAggregateMood(
-      history.filter(
-        (item) =>
-          item.isWeeklyEligible &&
-          (!item.timestamp || item.timestamp >= oneWeekAgo),
-      ),
-    );
-  });
-
-  const monthlyMood = computed(() => {
-    const history = clickedMoodsHistory.value || [];
-    const oneMonthAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-    return getAggregateMood(
-      history.filter(
-        (item) =>
-          item.isMonthlyEligible &&
-          (!item.timestamp || item.timestamp >= oneMonthAgo),
-      ),
-    );
-  });
-
-  const currentSelectedMood = computed(() => {
-    if (activeRingTab.value === "weekly") return weeklyMood.value;
-    if (activeRingTab.value === "monthly") return monthlyMood.value;
-    return dominantMood.value;
-  });
-
-  const oppositeMoodButtonText = computed(() => {
-    if (!currentSelectedMood.value) return "I'd rather be Alternative";
-    const oppositeData = moodOppositesMap[currentSelectedMood.value.id];
-    return oppositeData
-      ? `I'd rather be ${oppositeData.label}`
-      : "I'd rather be Alternative";
-  });
 
   const handleSearchSubmit = async () => {
     try {
       selectedMoodFilter.value = null;
-      await executeSearch();
+      await searchLogic.executeSearch();
       await nextTick();
 
-      if (results.value?.tracks?.length) {
-        for (const track of results.value.tracks) {
+      if (searchLogic.results.value?.tracks?.length) {
+        for (const track of searchLogic.results.value.tracks) {
           if (track.mood) continue;
           track.isAnalyzing = true;
           try {
-            await analyzeMoodInline(track);
+            await searchLogic.analyzeMoodInline(track);
           } catch (err) {
             console.error("Failed to fetch mood for:", track.name, err);
           } finally {
@@ -370,23 +216,33 @@ export function useSearchViewLogic() {
   };
 
   const filteredTracks = computed(() => {
-    if (!results.value?.tracks) return [];
-    if (!selectedMoodFilter.value) return results.value.tracks;
-    return results.value.tracks.filter(
+    if (!searchLogic.results.value?.tracks) return [];
+    if (!selectedMoodFilter.value) return searchLogic.results.value.tracks;
+    return searchLogic.results.value.tracks.filter(
       (t) => t.mood?.trim().toLowerCase() === selectedMoodFilter.value,
     );
   });
 
+  const oppositeMoodButtonText = computed(() => {
+    if (!moodLogic.currentSelectedMood.value)
+      return "I'd rather be Alternative";
+    const oppositeData =
+      moodLogic.moodOppositesMap[moodLogic.currentSelectedMood.value.id];
+    return oppositeData
+      ? `I'd rather be ${oppositeData.label}`
+      : "I'd rather be Alternative";
+  });
+
   const triggerAlternativeSearch = async (type) => {
-    if (!currentSelectedMood.value) return;
+    if (!moodLogic.currentSelectedMood.value) return;
     if (type === "same") {
-      selectedMoodFilter.value = currentSelectedMood.value.id;
+      selectedMoodFilter.value = moodLogic.currentSelectedMood.value.id;
     } else {
       selectedMoodFilter.value = null;
       isRingSearching.value = true;
-      searchQuery.value =
-        moodOppositesMap[currentSelectedMood.value.id]?.query ||
-        "new alternative music";
+      searchLogic.searchQuery.value =
+        moodLogic.moodOppositesMap[moodLogic.currentSelectedMood.value.id]
+          ?.query || "new alternative music";
       try {
         await handleSearchSubmit();
       } finally {
@@ -397,28 +253,20 @@ export function useSearchViewLogic() {
 
   return {
     activeTab,
-    activeRingTab,
     selectedMoodFilter,
-    clickedMoodsHistory,
-    isSpyingStopped,
-    isSpyingStoppedOnce,
     isRingSearching,
     activeLegendMoods,
-    searchQuery,
-    hasSearched,
-    results,
     filteredTracks,
     reversedHistory,
-    currentSelectedMood,
     oppositeMoodButtonText,
     handleSearchSubmit,
     handleTrackClick,
     clearOnlyVisualHistory,
-    purgeClickHistory,
-    restoreMoodRingFeature,
     triggerAlternativeSearch,
-    goToSongDetailsPage,
-    logout,
     handleQuestionMarkClick,
+
+    ...searchLogic,
+    ...moodLogic,
+    ...historyLogic,
   };
 }

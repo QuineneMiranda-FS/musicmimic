@@ -116,11 +116,7 @@ const route = useRoute();
 const router = useRouter();
 
 const goBack = () => {
-  if (window.history.length > 1) {
-    router.back();
-  } else {
-    router.push({ path: "/search" });
-  }
+  router.push({ name: "Dashboard" });
 };
 
 const {

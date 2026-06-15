@@ -1,4 +1,4 @@
-/* Main Grid Layout */
+/* Main Grid  */
 .search-page .dashboard-columns {
   display: grid;
   grid-template-columns: 2fr 1fr;
@@ -593,4 +593,48 @@
 
 .clickable-question:hover {
   transform: scale(1.1);
+}
+/* Collapsible Mood Key */
+.collapsible-header {
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.toggle-arrow {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.legend-grid-container {
+  margin-top: 12px;
+}
+
+.master-all-btn {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+/* Mood Synonyms */
+.mood-synonym-section {
+  margin-bottom: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.section-title-label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #777;
+  margin-bottom: 6px;
 }
