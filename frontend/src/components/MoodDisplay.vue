@@ -147,14 +147,6 @@
             </button>
           </div>
 
-          <!-- <button
-            class="legend-pill-btn master-all-btn"
-            :class="{ active: selectedMoodFilter === null }"
-            @click="$emit('update:selectedMoodFilter', null)"
-          >
-            🌈 All Tracks
-          </button> -->
-
           <div
             v-for="group in dynamicCategorizedGroups"
             :key="group.id"
@@ -162,7 +154,17 @@
             @dragover.prevent
             @drop="handleDrop($event, group.id)"
           >
-            <span class="section-title-label">{{ group.name }}</span>
+            <div class="category-header-wrapper">
+              <span class="section-title-label">{{ group.name }}</span>
+              <button
+                v-if="group.id !== 'cat-misc'"
+                class="edit-category-trigger-btn"
+                @click.stop="openEditCategoryModal(group)"
+                title="Edit Category"
+              >
+                ⚙️
+              </button>
+            </div>
 
             <div class="legend-grid">
               <div
@@ -205,11 +207,43 @@
           <label>Emoticon (Emoji)</label>
           <input v-model="editForm.emoticon" type="text" class="emoji-input" />
         </div>
-        <div class="modal-actions">
-          <button @click="saveMoodEdits" class="modal-btn save">Save</button>
-          <button @click="editingMood = null" class="modal-btn cancel">
-            Cancel
+        <div class="modal-actions-spaced">
+          <button @click="deleteExistingMood" class="modal-btn delete">
+            🗑️ Delete Mood
           </button>
+          <div class="right-actions">
+            <button @click="saveMoodEdits" class="modal-btn save">Save</button>
+            <button @click="editingMood = null" class="modal-btn cancel">
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="editingCategory" class="mood-edit-modal-overlay">
+      <div class="mood-edit-modal shadow-glow">
+        <h4>Edit Category Cluster</h4>
+        <div class="modal-field">
+          <label>Category Name & Icon Prefix</label>
+          <input
+            v-model="editCategoryForm.name"
+            type="text"
+            placeholder="e.g., 🚀 Hyperspace Vibes"
+          />
+        </div>
+        <div class="modal-actions-spaced">
+          <button @click="deleteExistingCategory" class="modal-btn delete">
+            🗑️ Delete Cluster
+          </button>
+          <div class="right-actions">
+            <button @click="saveCategoryEdits" class="modal-btn save">
+              Save
+            </button>
+            <button @click="editingCategory = null" class="modal-btn cancel">
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -217,7 +251,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { useMoodDisplayLogic } from "../js/moodDisplayLogic.js";
 
 const props = defineProps({
   activeRingTab: { type: String, default: "daily" },
@@ -240,236 +274,34 @@ const emit = defineEmits([
   "trigger-alternative",
   "question-click",
   "add-category",
+  "delete-category",
+  "update-category",
   "move-mood",
   "update-mood",
+  "delete-mood",
 ]);
 
-const isLegendOpen = ref(false);
-const newCategoryName = ref("");
-
-// Edit
-const editingMood = ref(null);
-const editForm = ref({ name: "", emoticon: "" });
-
-// Sorting
-const dynamicCategorizedGroups = computed(() => {
-  const structure = props.categories.map((cat) => ({
-    id: cat.id,
-    name: cat.name,
-    targets: cat.targets || [],
-    moods: [],
-  }));
-
-  const misfitsBucket = {
-    id: "cat-misc",
-    name: "📦 Miscellaneous Vibes",
-    moods: [],
-  };
-
-  props.activeLegendMoods.forEach((mood) => {
-    if (mood.categoryId) {
-      const explicitMatch = structure.find((c) => c.id === mood.categoryId);
-      if (explicitMatch) {
-        explicitMatch.moods.push(mood);
-        return;
-      }
-    }
-
-    // Fallback
-    const checkValue = (mood.name || mood.id || "").toLowerCase().trim();
-    const matchedCluster = structure.find((bucket) =>
-      bucket.targets.some((keyword) => checkValue.includes(keyword)),
-    );
-
-    if (matchedCluster) {
-      matchedCluster.moods.push(mood);
-    } else {
-      misfitsBucket.moods.push(mood);
-    }
-  });
-
-  // Show User Cats
-  const renderList = [...structure];
-  if (misfitsBucket.moods.length > 0 || props.categories.length === 0) {
-    renderList.push(misfitsBucket);
-  }
-  return renderList;
-});
-
-// Category Handler
-const handleCreateCategory = () => {
-  if (!newCategoryName.value.trim()) return;
-  emit("add-category", newCategoryName.value.trim());
-  newCategoryName.value = "";
-};
-
-// Drag & Drop
-const handleDragStart = (event, mood) => {
-  event.dataTransfer.effectAllowed = "move";
-  event.dataTransfer.setData("text/plain", mood.id);
-};
-
-const handleDrop = (event, targetCategoryId) => {
-  const moodId = event.dataTransfer.getData("text/plain");
-  if (moodId) {
-    emit("move-mood", moodId, targetCategoryId);
-  }
-};
-
-const openEditModal = (mood) => {
-  editingMood.value = mood;
-  editForm.value = { name: mood.name, emoticon: mood.emoticon };
-};
-
-const saveMoodEdits = () => {
-  if (editingMood.value) {
-    emit(
-      "update-mood",
-      editingMood.value.id,
-      editForm.value.name,
-      editForm.value.emoticon,
-    );
-    editingMood.value = null;
-  }
-};
+const {
+  isLegendOpen,
+  newCategoryName,
+  editingMood,
+  editForm,
+  editingCategory,
+  editCategoryForm,
+  dynamicCategorizedGroups,
+  handleCreateCategory,
+  handleDragStart,
+  handleDrop,
+  openEditModal,
+  saveMoodEdits,
+  deleteExistingMood,
+  openEditCategoryModal,
+  saveCategoryEdits,
+  deleteExistingCategory,
+} = useMoodDisplayLogic(props, emit);
 </script>
 
 <style scoped>
 @import "../styles/searchView.css";
-
-.category-creation-row {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-.category-input {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-  padding: 0.4rem 0.6rem;
-  border-radius: 6px;
-}
-.add-category-btn {
-  background: #3b82f6;
-  border: none;
-  cursor: pointer;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  transition: opacity 0.2s;
-}
-.add-category-btn:hover {
-  opacity: 0.9;
-}
-
-.drop-zone {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px dashed rgba(255, 255, 255, 0.1);
-  padding: 0.75rem;
-  border-radius: 8px;
-  margin-bottom: 0.75rem;
-  transition:
-    background 0.2s,
-    border-color 0.2s;
-}
-.drop-zone:hover {
-  background: rgba(59, 130, 246, 0.05);
-  border-color: rgba(59, 130, 246, 0.4);
-}
-
-.draggable-mood-wrapper {
-  position: relative;
-  display: inline-block;
-  cursor: grab;
-}
-.draggable-mood-wrapper:active {
-  cursor: grabbing;
-}
-
-.edit-pill-indicator {
-  position: absolute;
-  top: -4px;
-  right: -2px;
-  font-size: 0.65rem;
-  cursor: pointer;
-  background: #1e293b;
-  border-radius: 50%;
-  padding: 2px;
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-.draggable-mood-wrapper:hover .edit-pill-indicator {
-  opacity: 1;
-}
-
-.empty-zone-txt {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.4);
-  margin: 0.25rem 0 0 0;
-  font-style: italic;
-}
-
-/* Modal Styling */
-.mood-edit-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-}
-.mood-edit-modal {
-  background: #1e1e2e;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  padding: 1.5rem;
-  border-radius: 12px;
-  width: 300px;
-}
-.mood-edit-modal h4 {
-  margin-top: 0;
-  color: #fff;
-  margin-bottom: 1rem;
-}
-.modal-field {
-  margin-bottom: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-.modal-field label {
-  font-size: 0.8rem;
-  color: #a1a1aa;
-}
-.modal-field input {
-  background: #27273a;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  padding: 0.5rem;
-  border-radius: 6px;
-}
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 1.25rem;
-}
-.modal-btn {
-  padding: 0.4rem 1rem;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-}
-.modal-btn.save {
-  background: #10b981;
-  color: #fff;
-}
-.modal-btn.cancel {
-  background: #3f3f46;
-  color: #fff;
-}
+@import "../styles/moodDisplay.css";
 </style>

@@ -91,24 +91,24 @@ export function useMoodLogic() {
       }
     }
 
-    // LocalStorage
-    const savedCategories = localStorage.getItem("mimic_permanent_ai_moods")
-      ? localStorage.getItem("mimic_dynamic_categories")
-      : localStorage.getItem("mimic_custom_categories");
-
+    // Load Cats
+    const savedCategories =
+      localStorage.getItem("mimic_dynamic_categories") ||
+      localStorage.getItem("mimic_custom_categories");
     if (savedCategories) {
       try {
         dynamicCategories.value = JSON.parse(savedCategories);
       } catch (e) {
-        dynamicCategories.value = defaultCategories;
+        dynamicCategories.value = [...defaultCategories];
       }
     } else {
-      dynamicCategories.value = defaultCategories;
+      dynamicCategories.value = [...defaultCategories];
     }
 
+    // Load Active Moods
     const savedMoods =
-      localStorage.getItem("mimic_active_legend_state") ||
-      localStorage.getItem("mimic_active_moods_state");
+      localStorage.getItem("mimic_active_moods_state") ||
+      localStorage.getItem("mimic_active_legend_state");
     if (savedMoods) {
       try {
         activeLegendMoodsState.value = JSON.parse(savedMoods);
@@ -127,6 +127,7 @@ export function useMoodLogic() {
     }
   });
 
+  // Sync w/ Local
   watch(
     dynamicCategories,
     (newVal) => {
@@ -145,6 +146,7 @@ export function useMoodLogic() {
     { deep: true },
   );
 
+  // Cats Actions
   const addNewCategory = (name) => {
     const newCat = {
       id: `cat-${Date.now()}`,
@@ -154,31 +156,36 @@ export function useMoodLogic() {
     dynamicCategories.value.push(newCat);
   };
 
-  // Delete
-  const deleteCategory = (categoryId) => {
-    if (!categoryId) return;
-
-    dynamicCategories.value = dynamicCategories.value.filter(
-      (cat) => cat && cat.id !== categoryId,
+  const updateCategoryDetails = (categoryId, updatedName) => {
+    const category = dynamicCategories.value.find(
+      (cat) => cat && cat.id === categoryId,
     );
-
-    if (activeLegendMoodsState.value) {
-      activeLegendMoodsState.value.forEach((moodItem) => {
-        if (moodItem && moodItem.categoryId === categoryId) {
-          moodItem.categoryId = null;
-        }
-      });
+    if (category && updatedName) {
+      category.name = updatedName;
     }
   };
 
-  // Cat Changes
+  const deleteCategory = (categoryId) => {
+    if (!categoryId) return;
+    dynamicCategories.value = dynamicCategories.value.filter(
+      (cat) => cat && cat.id !== categoryId,
+    );
+    activeLegendMoodsState.value.forEach((moodItem) => {
+      if (moodItem && moodItem.categoryId === categoryId) {
+        moodItem.categoryId = null;
+      }
+    });
+  };
+
+  // Mood Actions
   const moveMoodToCategory = (moodId, targetCategoryId) => {
     if (!moodId) return;
     const lowerId = moodId.toLowerCase().trim();
 
     let mood = activeLegendMoodsState.value.find((m) => m && m.id === lowerId);
     if (mood) {
-      mood.categoryId = targetCategoryId;
+      mood.categoryId =
+        targetCategoryId === "cat-misc" ? null : targetCategoryId;
     } else {
       const aiMatch = permanentCustomMoods.value?.find(
         (m) => m && m.id === lowerId,
@@ -187,12 +194,11 @@ export function useMoodLogic() {
         id: lowerId,
         name: aiMatch ? aiMatch.name : moodId,
         emoticon: aiMatch ? aiMatch.emoticon : "🎵",
-        categoryId: targetCategoryId,
+        categoryId: targetCategoryId === "cat-misc" ? null : targetCategoryId,
       });
     }
   };
 
-  // Update
   const updateMoodDetails = (moodId, updatedName, updatedEmoticon) => {
     if (!moodId) return;
     const lowerId = moodId.toLowerCase().trim();
@@ -208,7 +214,7 @@ export function useMoodLogic() {
         id: lowerId,
         name: updatedName || moodId,
         emoticon: updatedEmoticon || "🎵",
-        categoryId: "misc",
+        categoryId: null,
       });
     }
 
@@ -227,7 +233,28 @@ export function useMoodLogic() {
     }
   };
 
-  // Mood Timeframes
+  const deleteMoodFromState = (moodId) => {
+    if (!moodId) return;
+    const lowerId = moodId.toLowerCase().trim();
+
+    // Filter fm View
+    activeLegendMoodsState.value = activeLegendMoodsState.value.filter(
+      (m) => m && m.id !== lowerId,
+    );
+
+    // Filter for AI generated
+    if (permanentCustomMoods.value) {
+      permanentCustomMoods.value = permanentCustomMoods.value.filter(
+        (m) => m && m.id !== lowerId,
+      );
+      localStorage.setItem(
+        "mimic_permanent_ai_moods",
+        JSON.stringify(permanentCustomMoods.value),
+      );
+    }
+  };
+
+  // Moods Calculations
   const getAggregateMood = (sourceArray) => {
     if (!sourceArray || !sourceArray.length) return null;
     const counts = {};
@@ -311,7 +338,6 @@ export function useMoodLogic() {
     );
   };
 
-  // Helper Opposites
   const moodOppositesMap = {
     chill: { label: "Energetic", query: "fast high energy party electronic" },
     energetic: {
@@ -322,10 +348,7 @@ export function useMoodLogic() {
       label: "Happy",
       query: "happy acoustic cheerful uplifting bright",
     },
-    happy: {
-      label: "Sad",
-      query: "sad melancholic cinematic slow deep",
-    },
+    happy: { label: "Sad", query: "sad melancholic cinematic slow deep" },
     melancholic: {
       label: "Upbeat",
       query: "dance pop disco joyful celebratory",
@@ -342,10 +365,7 @@ export function useMoodLogic() {
       label: "Grounded",
       query: "indie rock folk standard classic acoustic",
     },
-    upbeat: {
-      label: "Chill",
-      query: "fast high energy party electronic",
-    },
+    upbeat: { label: "Chill", query: "fast high energy party electronic" },
     grounded: {
       label: "Energetic",
       query: "skate-punk synthesizer power upbeat",
@@ -367,8 +387,10 @@ export function useMoodLogic() {
     moodOppositesMap,
     addNewCategory,
     deleteCategory,
+    updateCategoryDetails,
     moveMoodToCategory,
     updateMoodDetails,
+    deleteMoodFromState,
     purgeClickHistory,
     restoreMoodRingFeature: () => {
       isSpyingStopped.value = false;

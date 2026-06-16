@@ -188,7 +188,7 @@ export function useSearchViewLogic() {
           stateMatch?.categoryId ||
           moodItem.categoryId ||
           moodItem.legendGroup ||
-          "misc",
+          null,
       };
     });
   });
@@ -332,12 +332,6 @@ export function useSearchViewLogic() {
     }
   };
 
-  const deleteCustomCategory = (categoryId) => {
-    if (moodLogic && typeof moodLogic.deleteCategory === "function") {
-      moodLogic.deleteCategory(categoryId);
-    }
-  };
-
   return {
     activeTab,
     selectedMoodFilter,
@@ -367,8 +361,10 @@ export function useSearchViewLogic() {
 
     dynamicCategories: moodLogic?.dynamicCategories,
     addNewCategory: moodLogic?.addNewCategory,
+    updateCustomCategory: moodLogic?.updateCategoryDetails,
+    deleteCustomCategory: moodLogic?.deleteCategory,
     moveMoodToCategory: moodLogic?.moveMoodToCategory,
     updateMoodDetails: moodLogic?.updateMoodDetails,
-    deleteCustomCategory,
+    deleteCustomMood: moodLogic?.deleteMoodFromState,
   };
 }
