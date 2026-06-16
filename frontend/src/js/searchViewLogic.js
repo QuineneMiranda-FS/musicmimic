@@ -1,5 +1,4 @@
 import { ref, computed, nextTick, onMounted } from "vue";
-import { useRouter } from "vue-router";
 import { useSearchLogic } from "./search.js";
 import { useMoodLogic } from "./mood.js";
 import { useHistoryLogic } from "./history.js";
@@ -11,7 +10,9 @@ export function useSearchViewLogic() {
 
   const searchLogic = useSearchLogic();
   const moodLogic = useMoodLogic();
-  const historyLogic = useHistoryLogic(searchLogic.goToSongDetailsPage);
+  const historyLogic = useHistoryLogic((track) =>
+    searchLogic?.goToSongDetailsPage(track),
+  );
 
   const moodMatrixConfig = {
     energetic: { label: "Energetic", emoticon: "⚡" },
@@ -28,7 +29,7 @@ export function useSearchViewLogic() {
 
   onMounted(() => {
     const savedCustomMoods = localStorage.getItem("mimic_permanent_ai_moods");
-    if (savedCustomMoods) {
+    if (savedCustomMoods && moodLogic?.permanentCustomMoods) {
       try {
         moodLogic.permanentCustomMoods.value = JSON.parse(savedCustomMoods);
       } catch (e) {
@@ -36,7 +37,7 @@ export function useSearchViewLogic() {
       }
     }
     const savedHistory = localStorage.getItem("mimic_daily_mood_clicks");
-    if (savedHistory && moodLogic.clickedMoodsHistory) {
+    if (savedHistory && moodLogic?.clickedMoodsHistory) {
       try {
         moodLogic.clickedMoodsHistory.value = JSON.parse(savedHistory);
       } catch (e) {
@@ -46,12 +47,16 @@ export function useSearchViewLogic() {
   });
 
   const saveNewAImoodPermanently = (normalizedName, emoticon, legendGroup) => {
-    const lowerName = normalizedName.toLowerCase();
+    const lowerName = normalizedName?.toLowerCase().trim();
+    if (!lowerName) return;
     if (moodMatrixConfig[lowerName]) return;
+    if (!moodLogic || !moodLogic.permanentCustomMoods) return;
 
-    const alreadySaved = moodLogic.permanentCustomMoods.value.some(
-      (item) => item.id === lowerName,
+    const currentSaved = moodLogic.permanentCustomMoods.value || [];
+    const alreadySaved = currentSaved.some(
+      (item) => item && item.id === lowerName,
     );
+
     if (!alreadySaved) {
       const newMoodObj = {
         id: lowerName,
@@ -59,6 +64,11 @@ export function useSearchViewLogic() {
         emoticon: emoticon || "🎵",
         legendGroup: legendGroup ? legendGroup.toLowerCase() : "chill",
       };
+
+      if (!moodLogic.permanentCustomMoods.value) {
+        moodLogic.permanentCustomMoods.value = [];
+      }
+
       moodLogic.permanentCustomMoods.value.push(newMoodObj);
       localStorage.setItem(
         "mimic_permanent_ai_moods",
@@ -111,19 +121,19 @@ export function useSearchViewLogic() {
       },
     ];
 
-    (moodLogic.permanentCustomMoods.value || []).forEach((customMood) => {
-      if (!baseLegend.some((item) => item.id === customMood.id)) {
+    const customMoodsList = moodLogic?.permanentCustomMoods?.value || [];
+    customMoodsList.forEach((customMood) => {
+      if (customMood && !baseLegend.some((item) => item.id === customMood.id)) {
         baseLegend.push(customMood);
       }
     });
 
-    const allAvailableSongs = [
-      ...(searchLogic.results.value?.tracks || []),
-      ...(moodLogic.clickedMoodsHistory.value || []),
-    ];
+    const tracksResults = searchLogic?.results?.value?.tracks || [];
+    const historyClicks = moodLogic?.clickedMoodsHistory?.value || [];
+    const allAvailableSongs = [...tracksResults, ...historyClicks];
 
     allAvailableSongs.forEach((track) => {
-      if (track.mood) {
+      if (track && track.mood) {
         const normalizedName = track.mood.trim();
         const lowerName = normalizedName.toLowerCase();
         saveNewAImoodPermanently(
@@ -144,18 +154,36 @@ export function useSearchViewLogic() {
         }
       }
     });
-    return baseLegend;
+
+    const savedStateList = moodLogic?.activeLegendMoodsState?.value || [];
+
+    return baseLegend.map((moodItem) => {
+      const stateMatch = savedStateList.find((m) => m && m.id === moodItem.id);
+      return {
+        ...moodItem,
+        name: stateMatch?.name || moodItem.name,
+        emoticon: stateMatch?.emoticon || moodItem.emoticon,
+        categoryId:
+          stateMatch?.categoryId ||
+          moodItem.categoryId ||
+          moodItem.legendGroup ||
+          "misc",
+      };
+    });
   });
 
   const handleTrackClick = (track) => {
-    if (!moodLogic.isSpyingStopped.value) {
+    if (moodLogic?.isSpyingStopped && !moodLogic.isSpyingStopped.value) {
       const now = Date.now();
-
-      const isAlreadyInHistory = moodLogic.clickedMoodsHistory.value.some(
-        (t) => t.id === track.id,
+      const historyList = moodLogic.clickedMoodsHistory.value || [];
+      const isAlreadyInHistory = historyList.some(
+        (t) => t && t.id === track.id,
       );
 
       if (!isAlreadyInHistory) {
+        if (!moodLogic.clickedMoodsHistory.value) {
+          moodLogic.clickedMoodsHistory.value = [];
+        }
         moodLogic.clickedMoodsHistory.value.push({
           id: track.id || now.toString(),
           name: track.name || track.title || "Unknown Title",
@@ -175,18 +203,21 @@ export function useSearchViewLogic() {
         );
       }
     }
+    goToSongDetailsPage(track);
+  };
 
-    searchLogic.goToSongDetailsPage(track);
+  const goToSongDetailsPage = (track) => {
+    if (searchLogic && typeof searchLogic.goToSongDetailsPage === "function") {
+      searchLogic.goToSongDetailsPage(track);
+    }
   };
 
   const deleteSongFromHistory = (trackId) => {
-    if (!moodLogic.clickedMoodsHistory.value) return;
-
+    if (!moodLogic?.clickedMoodsHistory?.value) return;
     moodLogic.clickedMoodsHistory.value =
       moodLogic.clickedMoodsHistory.value.filter(
-        (track) => track.id !== trackId,
+        (track) => track && track.id !== trackId,
       );
-
     localStorage.setItem(
       "mimic_daily_mood_clicks",
       JSON.stringify(moodLogic.clickedMoodsHistory.value),
@@ -194,20 +225,22 @@ export function useSearchViewLogic() {
   };
 
   const reversedHistory = computed(() => {
-    const history = moodLogic.clickedMoodsHistory.value;
+    const history = moodLogic?.clickedMoodsHistory?.value;
     if (!history || !Array.isArray(history) || history.length === 0) return [];
     return [...history].reverse();
   });
 
   const clearOnlyVisualHistory = () => {
-    moodLogic.clickedMoodsHistory.value = [];
+    if (moodLogic?.clickedMoodsHistory) {
+      moodLogic.clickedMoodsHistory.value = [];
+    }
     localStorage.removeItem("mimic_daily_mood_clicks");
   };
 
   const handleQuestionMarkClick = () => {
     if (
-      moodLogic.isSpyingStoppedOnce.value &&
-      moodLogic.activeRingTab.value === "daily"
+      moodLogic?.isSpyingStoppedOnce?.value &&
+      moodLogic?.activeRingTab?.value === "daily"
     ) {
       alert(
         "You didn't want me following you around. You'll have to start over. Pick some songs and I'll figure out your mood.",
@@ -223,7 +256,7 @@ export function useSearchViewLogic() {
 
       if (searchLogic.results.value?.tracks?.length) {
         for (const track of searchLogic.results.value.tracks) {
-          if (track.mood) continue;
+          if (!track || track.mood) continue;
           track.isAnalyzing = true;
           try {
             await searchLogic.analyzeMoodInline(track);
@@ -243,35 +276,44 @@ export function useSearchViewLogic() {
     if (!searchLogic.results.value?.tracks) return [];
     if (!selectedMoodFilter.value) return searchLogic.results.value.tracks;
     return searchLogic.results.value.tracks.filter(
-      (t) => t.mood?.trim().toLowerCase() === selectedMoodFilter.value,
+      (t) => t && t.mood?.trim().toLowerCase() === selectedMoodFilter.value,
     );
   });
 
   const oppositeMoodButtonText = computed(() => {
-    if (!moodLogic.currentSelectedMood.value)
+    const currentId = moodLogic?.currentSelectedMood?.value?.id;
+    if (!currentId || !moodLogic?.moodOppositesMap)
       return "I'd rather be Alternative";
-    const oppositeData =
-      moodLogic.moodOppositesMap[moodLogic.currentSelectedMood.value.id];
+    const oppositeData = moodLogic.moodOppositesMap[currentId];
     return oppositeData
       ? `I'd rather be ${oppositeData.label}`
       : "I'd rather be Alternative";
   });
 
   const triggerAlternativeSearch = async (type) => {
-    if (!moodLogic.currentSelectedMood.value) return;
+    const currentId = moodLogic?.currentSelectedMood?.value?.id;
+    if (!currentId) return;
     if (type === "same") {
-      selectedMoodFilter.value = moodLogic.currentSelectedMood.value.id;
+      selectedMoodFilter.value = currentId;
     } else {
       selectedMoodFilter.value = null;
       isRingSearching.value = true;
-      searchLogic.searchQuery.value =
-        moodLogic.moodOppositesMap[moodLogic.currentSelectedMood.value.id]
-          ?.query || "new alternative music";
+      if (searchLogic?.searchQuery && moodLogic?.moodOppositesMap) {
+        searchLogic.searchQuery.value =
+          moodLogic.moodOppositesMap[currentId]?.query ||
+          "new alternative music";
+      }
       try {
         await handleSearchSubmit();
       } finally {
         isRingSearching.value = false;
       }
+    }
+  };
+
+  const deleteCustomCategory = (categoryId) => {
+    if (moodLogic && typeof moodLogic.deleteCategory === "function") {
+      moodLogic.deleteCategory(categoryId);
     }
   };
 
@@ -289,9 +331,23 @@ export function useSearchViewLogic() {
     triggerAlternativeSearch,
     handleQuestionMarkClick,
     deleteSongFromHistory,
+    goToSongDetailsPage,
 
-    ...searchLogic,
-    ...moodLogic,
-    ...historyLogic,
+    searchQuery: searchLogic?.searchQuery,
+    hasSearched: searchLogic?.hasSearched,
+    results: searchLogic?.results,
+
+    activeRingTab: moodLogic?.activeRingTab,
+    currentSelectedMood: moodLogic?.currentSelectedMood,
+    isSpyingStopped: moodLogic?.isSpyingStopped,
+    clickedMoodsHistory: moodLogic?.clickedMoodsHistory,
+    purgeClickHistory: moodLogic?.purgeClickHistory,
+    restoreMoodRingFeature: moodLogic?.restoreMoodRingFeature,
+
+    dynamicCategories: moodLogic?.dynamicCategories,
+    addNewCategory: moodLogic?.addNewCategory,
+    moveMoodToCategory: moodLogic?.moveMoodToCategory,
+    updateMoodDetails: moodLogic?.updateMoodDetails,
+    deleteCustomCategory,
   };
 }

@@ -173,7 +173,12 @@
           :current-selected-mood="currentSelectedMood"
           :opposite-mood-button-text="oppositeMoodButtonText"
           :is-spying-stopped="isSpyingStopped"
+          :categories="dynamicCategories"
           :active-legend-moods="activeLegendMoods"
+          @add-category="addNewCategory"
+          @move-mood="moveMoodToCategory"
+          @update-mood="updateMoodDetails"
+          @delete-category="deleteCustomCategory"
           @restore-spying="restoreMoodRingFeature"
           @stop-spying="purgeClickHistory"
           @trigger-alternative="triggerAlternativeSearch"
@@ -201,7 +206,7 @@
               :class="
                 track.mood ? `mood-${track.mood.trim().toLowerCase()}` : ''
               "
-              @click="handleTrackClick(track)"
+              @click="goToSongDetailsPage(track)"
             >
               <button
                 class="delete-history-item-btn"
@@ -272,6 +277,11 @@ const {
   goToSongDetailsPage,
   handleQuestionMarkClick,
   deleteSongFromHistory,
+  dynamicCategories,
+  addNewCategory,
+  moveMoodToCategory,
+  updateMoodDetails,
+  deleteCustomCategory,
 } = useSearchViewLogic();
 </script>
 
