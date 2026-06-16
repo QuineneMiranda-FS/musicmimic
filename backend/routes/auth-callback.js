@@ -9,7 +9,6 @@ const { User } = require("../models");
 const SPOTIFY_CLIENT_ID = (process.env.SPOTIFY_CLIENT_ID || "").trim();
 const SPOTIFY_CLIENT_SECRET = (process.env.SPOTIFY_CLIENT_SECRET || "").trim();
 const REDIRECT_URI = (process.env.SPOTIFY_REDIRECT_URI || "").trim();
-
 const BASIC_AUTH_HEADER = `Basic ${Buffer.from(`${SPOTIFY_CLIENT_ID}:${SPOTIFY_CLIENT_SECRET}`).toString("base64")}`;
 
 // GET: Spotify Callback
@@ -43,14 +42,13 @@ router.get("/callback/spotify", async (req, res, next) => {
       refresh_token: spotifyRefreshToken,
     } = tokenResponse.data;
 
-    // Fetch Spotify User Profile
+    // Fetch Spotify User
     const profileResponse = await axios.get("https://api.spotify.com/v1/me", {
       headers: { Authorization: `Bearer ${spotifyAccessToken}` },
     });
-
     console.log("Spotify Profile Data Object:", profileResponse.data);
 
-    // DB Query (update or create)
+    // Data for DB
     const userData = {
       email: profileResponse.data.email,
       displayName: profileResponse.data.display_name,
@@ -61,23 +59,38 @@ router.get("/callback/spotify", async (req, res, next) => {
       userData.spotifyRefreshToken = spotifyRefreshToken;
     }
 
-    const [user] = await User.upsert({
+    // To DB
+    await User.upsert({
       spotifyId: profileResponse.data.id,
       ...userData,
     });
 
-    // Generate Session JWT
-    const appToken = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN || "1h",
+    // Refresh
+    const dbUser = await User.findOne({
+      where: { spotifyId: profileResponse.data.id },
+    });
+
+    if (!dbUser) {
+      throw new Error(
+        "Failed to find or retrieve user profile from the database.",
+      );
+    }
+
+    // JWT Life
+    const tokenLifespan = process.env.JWT_EXPIRES_IN || "1h";
+    const appToken = jwt.sign({ userId: dbUser.id }, process.env.JWT_SECRET, {
+      expiresIn: tokenLifespan,
     });
 
     // Redirect to Frontend
     const frontendRedirect = new URL("http://127.0.0.1:5173/");
     frontendRedirect.searchParams.append("token", appToken);
-
     return res.redirect(frontendRedirect.toString());
   } catch (error) {
-    // To errorHandler
+    console.error(
+      "--- CALLBACK EXCEPTION LOG ---",
+      error.response?.data || error.message,
+    );
     next(error);
   }
 });

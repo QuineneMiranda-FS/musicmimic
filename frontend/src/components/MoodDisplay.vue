@@ -138,7 +138,7 @@
             <input
               v-model="newCategoryName"
               type="text"
-              placeholder="Create new vibe category..."
+              placeholder="Create new mood category..."
               @keyup.enter="handleCreateCategory"
               class="category-input"
             />
@@ -147,13 +147,13 @@
             </button>
           </div>
 
-          <button
+          <!-- <button
             class="legend-pill-btn master-all-btn"
             :class="{ active: selectedMoodFilter === null }"
             @click="$emit('update:selectedMoodFilter', null)"
           >
             🌈 All Tracks
-          </button>
+          </button> -->
 
           <div
             v-for="group in dynamicCategorizedGroups"
