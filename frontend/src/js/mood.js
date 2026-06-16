@@ -21,6 +21,9 @@ export function useMoodLogic() {
     mysterious: { label: "Mysterious", emoticon: "🔮" },
     ethereal: { label: "Ethereal", emoticon: "✨" },
     grounded: { label: "Grounded", emoticon: "🪵" },
+    sad: { label: "Sad", emoticon: "😥" },
+    nostalgic: { label: "Nostalgic", emoticon: "📼" },
+    objectifying: { label: "Objectifying", emoticon: "🔍" },
   };
 
   const defaultCategories = [
@@ -53,6 +56,11 @@ export function useMoodLogic() {
       id: "cat-mystical",
       name: "🔮 Mystical & Cosmic",
       targets: ["mysterious", "ethereal", "romantic", "grounded"],
+    },
+    {
+      id: "cat-relation",
+      name: "💖 Romance & Relationships",
+      targets: ["romantic", "objectifying", "vulnerable", "cherished"],
     },
   ];
 
@@ -315,7 +323,7 @@ export function useMoodLogic() {
       query: "happy acoustic cheerful uplifting bright",
     },
     happy: {
-      label: "Melancholic",
+      label: "Sad",
       query: "sad melancholic cinematic slow deep",
     },
     melancholic: {
@@ -323,8 +331,8 @@ export function useMoodLogic() {
       query: "dance pop disco joyful celebratory",
     },
     romantic: {
-      label: "Grounded",
-      query: "blues roots acoustic earthy independent",
+      label: "Bitter",
+      query: "resentful bitter acoustic conflict independent",
     },
     mysterious: {
       label: "Ethereal",
@@ -335,8 +343,8 @@ export function useMoodLogic() {
       query: "indie rock folk standard classic acoustic",
     },
     upbeat: {
-      label: "Melancholic",
-      query: "somber tragic lonely heavy introspective",
+      label: "Chill",
+      query: "fast high energy party electronic",
     },
     grounded: {
       label: "Energetic",

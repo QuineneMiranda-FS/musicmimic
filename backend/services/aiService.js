@@ -18,6 +18,9 @@ const defaultMoodMatrix = [
   { mood: "Mysterious", emoticon: "🔮" },
   { mood: "Ethereal", emoticon: "✨" },
   { mood: "Grounded", emoticon: "🪵" },
+  { mood: "Sad", emoticon: "😥" },
+  { mood: "Nostalgic", emoticon: "📼" },
+  { mood: "Objectifying", emoticon: "🔍" },
 ];
 
 function parseAIJsonResponse(content) {

@@ -25,6 +25,9 @@ export function useSearchViewLogic() {
     mysterious: { label: "Mysterious", emoticon: "🔮" },
     ethereal: { label: "Ethereal", emoticon: "✨" },
     grounded: { label: "Grounded", emoticon: "🪵" },
+    sad: { label: "Sad", emoticon: "😥" },
+    nostalgic: { label: "Nostalgic", emoticon: "📼" },
+    objectifying: { label: "Objectifying", emoticon: "🔍" },
   };
 
   onMounted(() => {
@@ -118,6 +121,24 @@ export function useSearchViewLogic() {
         name: "Grounded",
         emoticon: "🪵",
         legendGroup: "grounded",
+      },
+      {
+        id: "sad",
+        name: "Sad",
+        emoticon: "😥",
+        legendGroup: "sad",
+      },
+      {
+        id: "nostalgic",
+        name: "Nostalgic",
+        emoticon: "📼",
+        legendGroup: "nostalgic",
+      },
+      {
+        id: "objectifying",
+        name: "Objectifying",
+        emoticon: "🔍",
+        legendGroup: "objectifying",
       },
     ];
 
