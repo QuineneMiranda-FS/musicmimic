@@ -92,7 +92,50 @@ export function useMoodDisplayLogic(props, emit) {
       editingCategory.value = null;
     }
   };
+  // Mood Key Scroll Handler
 
+  let scrollAnimationFrame = null;
+
+  const handleDragOverScroll = (event) => {
+    event.preventDefault();
+
+    const container = document.querySelector(".mood-ring-column");
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    const relativeY = event.clientY - rect.top;
+
+    const scrollThreshold = 80;
+    const maxSpeed = 15;
+
+    if (scrollAnimationFrame) {
+      cancelAnimationFrame(scrollAnimationFrame);
+      scrollAnimationFrame = null;
+    }
+
+    let speed = 0;
+
+    if (relativeY < scrollThreshold) {
+      speed = -maxSpeed * (1 - relativeY / scrollThreshold);
+    } else if (rect.height - relativeY < scrollThreshold) {
+      speed = maxSpeed * (1 - (rect.height - relativeY) / scrollThreshold);
+    }
+
+    if (speed !== 0) {
+      const startScrolling = () => {
+        container.scrollTop += speed;
+        scrollAnimationFrame = requestAnimationFrame(startScrolling);
+      };
+      scrollAnimationFrame = requestAnimationFrame(startScrolling);
+    }
+  };
+
+  const clearDragScrollLoop = () => {
+    if (scrollAnimationFrame) {
+      cancelAnimationFrame(scrollAnimationFrame);
+      scrollAnimationFrame = null;
+    }
+  };
   // Drag & Drop Handlers
   const handleDragStart = (event, mood) => {
     event.dataTransfer.effectAllowed = "move";
@@ -145,6 +188,8 @@ export function useMoodDisplayLogic(props, emit) {
     handleCreateCategory,
     handleDragStart,
     handleDrop,
+    handleDragOverScroll,
+    clearDragScrollLoop,
     openEditModal,
     saveMoodEdits,
     deleteExistingMood,

@@ -1,5 +1,8 @@
 <template>
-  <section class="column-panel mood-ring-sidebar-panel">
+  <section
+    class="column-panel mood-ring-sidebar-panel"
+    @dragover="handleDragOverScroll"
+  >
     <div
       v-if="isSpyingStopped"
       class="mood-ring-box-wrapper lava-lamp-wrapper animate-fade-in"
@@ -126,7 +129,12 @@
       </template>
     </div>
 
-    <aside class="mood-ring-column">
+    <aside
+      class="mood-ring-column"
+      @dragover="handleDragOverScroll"
+      @dragend="clearDragScrollLoop"
+      @drop="clearDragScrollLoop"
+    >
       <div class="mood-legend-panel">
         <h3 @click="isLegendOpen = !isLegendOpen" class="collapsible-header">
           Mood Manager & Key
@@ -292,6 +300,8 @@ const {
   handleCreateCategory,
   handleDragStart,
   handleDrop,
+  handleDragOverScroll,
+  clearDragScrollLoop,
   openEditModal,
   saveMoodEdits,
   deleteExistingMood,

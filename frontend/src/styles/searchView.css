@@ -12,8 +12,18 @@
   flex-direction: column;
   gap: 20px;
   width: 100%;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
 }
 
+.search-page .mood-ring-column::-webkit-scrollbar {
+  width: 6px;
+}
+
+.search-page .mood-ring-column::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
 .search-page .column-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
