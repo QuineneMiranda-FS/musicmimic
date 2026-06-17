@@ -188,7 +188,7 @@
         />
 
         <section
-          v-if="clickedMoodsHistory.length"
+          v-if="reversedHistory.length"
           class="column-panel history-full-row-panel animate-fade-in"
         >
           <div class="history-section-header">
@@ -203,7 +203,7 @@
           <div class="history-grid-row">
             <div
               v-for="(track, index) in reversedHistory"
-              :key="track.id + '-' + index"
+              :key="(track.id || track.spotifyId) + '-' + index"
               class="card track-card history-mini-card"
               :class="
                 track.mood ? `mood-${track.mood.trim().toLowerCase()}` : ''
@@ -283,7 +283,9 @@ const {
   addNewCategory,
   moveMoodToCategory,
   updateMoodDetails,
+  updateCustomCategory,
   deleteCustomCategory,
+  deleteCustomMood,
 } = useSearchViewLogic();
 </script>
 

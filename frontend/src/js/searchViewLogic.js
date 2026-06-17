@@ -10,9 +10,14 @@ export function useSearchViewLogic() {
 
   const searchLogic = useSearchLogic();
   const moodLogic = useMoodLogic();
-  const historyLogic = useHistoryLogic((track) =>
-    searchLogic?.goToSongDetailsPage(track),
-  );
+
+  const {
+    historyTracks,
+    logTrackInteraction,
+    clearAllHistory,
+    deleteSingleTrackFromHistory,
+    refreshHistory,
+  } = useHistoryLogic((track) => searchLogic?.goToSongDetailsPage(track));
 
   const moodMatrixConfig = {
     energetic: { label: "Energetic", emoticon: "⚡" },
@@ -30,7 +35,7 @@ export function useSearchViewLogic() {
     objectifying: { label: "Objectifying", emoticon: "🔍" },
   };
 
-  onMounted(() => {
+  onMounted(async () => {
     const savedCustomMoods = localStorage.getItem("mimic_permanent_ai_moods");
     if (savedCustomMoods && moodLogic?.permanentCustomMoods) {
       try {
@@ -39,13 +44,12 @@ export function useSearchViewLogic() {
         console.error("Failed to parse custom moods", e);
       }
     }
-    const savedHistory = localStorage.getItem("mimic_daily_mood_clicks");
-    if (savedHistory && moodLogic?.clickedMoodsHistory) {
-      try {
-        moodLogic.clickedMoodsHistory.value = JSON.parse(savedHistory);
-      } catch (e) {
-        console.error("Failed to parse history ", e);
-      }
+
+    // Fetch History
+    await refreshHistory();
+
+    if (moodLogic?.clickedMoodsHistory) {
+      moodLogic.clickedMoodsHistory.value = [...historyTracks.value];
     }
   });
 
@@ -122,12 +126,7 @@ export function useSearchViewLogic() {
         emoticon: "🪵",
         legendGroup: "grounded",
       },
-      {
-        id: "sad",
-        name: "Sad",
-        emoticon: "😥",
-        legendGroup: "sad",
-      },
+      { id: "sad", name: "Sad", emoticon: "😥", legendGroup: "sad" },
       {
         id: "nostalgic",
         name: "Nostalgic",
@@ -193,35 +192,14 @@ export function useSearchViewLogic() {
     });
   });
 
-  const handleTrackClick = (track) => {
+  // Click Handling
+  const handleTrackClick = async (track) => {
     if (moodLogic?.isSpyingStopped && !moodLogic.isSpyingStopped.value) {
-      const now = Date.now();
-      const historyList = moodLogic.clickedMoodsHistory.value || [];
-      const isAlreadyInHistory = historyList.some(
-        (t) => t && t.id === track.id,
-      );
+      await logTrackInteraction(track);
 
-      if (!isAlreadyInHistory) {
-        if (!moodLogic.clickedMoodsHistory.value) {
-          moodLogic.clickedMoodsHistory.value = [];
-        }
-        moodLogic.clickedMoodsHistory.value.push({
-          id: track.id || now.toString(),
-          name: track.name || track.title || "Unknown Title",
-          artist: track.artist || "Unknown Artist",
-          image: track.image || "fallback.jpg",
-          mood: track.mood || null,
-          emoticon: track.emoticon || "🎵",
-          timestamp: now,
-          isDailyEligible: true,
-          isWeeklyEligible: true,
-          isMonthlyEligible: true,
-        });
-
-        localStorage.setItem(
-          "mimic_daily_mood_clicks",
-          JSON.stringify(moodLogic.clickedMoodsHistory.value),
-        );
+      await refreshHistory();
+      if (moodLogic.clickedMoodsHistory) {
+        moodLogic.clickedMoodsHistory.value = [...historyTracks.value];
       }
     }
     goToSongDetailsPage(track);
@@ -233,29 +211,64 @@ export function useSearchViewLogic() {
     }
   };
 
-  const deleteSongFromHistory = (trackId) => {
-    if (!moodLogic?.clickedMoodsHistory?.value) return;
-    moodLogic.clickedMoodsHistory.value =
-      moodLogic.clickedMoodsHistory.value.filter(
-        (track) => track && track.id !== trackId,
-      );
-    localStorage.setItem(
-      "mimic_daily_mood_clicks",
-      JSON.stringify(moodLogic.clickedMoodsHistory.value),
-    );
+  const deleteSongFromHistory = async (trackId) => {
+    await deleteSingleTrackFromHistory(trackId);
+
+    await refreshHistory();
+    if (moodLogic?.clickedMoodsHistory) {
+      moodLogic.clickedMoodsHistory.value = [...historyTracks.value];
+    }
   };
 
+  // Newest First History
   const reversedHistory = computed(() => {
     const history = moodLogic?.clickedMoodsHistory?.value;
     if (!history || !Array.isArray(history) || history.length === 0) return [];
-    return [...history].reverse();
+
+    const dailyTracks = history.filter(
+      (track) =>
+        track && track.isDailyEligible !== false && track.isDailyEligible !== 0,
+    );
+
+    return [...dailyTracks].sort((a, b) => {
+      if (a.id && b.id && !isNaN(a.id) && !isNaN(b.id)) {
+        return Number(b.id) - Number(a.id);
+      }
+
+      // Fallback
+      const timeA = a.timestamp || 0;
+      const timeB = b.timestamp || 0;
+      return timeB - timeA;
+    });
   });
 
-  const clearOnlyVisualHistory = () => {
-    if (moodLogic?.clickedMoodsHistory) {
-      moodLogic.clickedMoodsHistory.value = [];
+  const clearOnlyVisualHistory = async () => {
+    try {
+      await clearAllHistory();
+      if (moodLogic?.clickedMoodsHistory?.value) {
+        moodLogic.clickedMoodsHistory.value =
+          moodLogic.clickedMoodsHistory.value.map((track) => {
+            if (track) {
+              return {
+                ...track,
+                isDailyEligible: false,
+              };
+            }
+            return track;
+          });
+      }
+
+      // Refresh
+      await refreshHistory();
+      if (moodLogic?.clickedMoodsHistory) {
+        moodLogic.clickedMoodsHistory.value = [...historyTracks.value];
+      }
+    } catch (error) {
+      console.error(
+        "Failed to smoothly clear daily visual history stream:",
+        error,
+      );
     }
-    localStorage.removeItem("mimic_daily_mood_clicks");
   };
 
   const handleQuestionMarkClick = () => {

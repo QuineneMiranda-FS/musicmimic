@@ -109,8 +109,10 @@
 </template>
 
 <script setup>
+import { watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useDetailsLogic } from "../js/details.js";
+import { useHistoryLogic } from "../js/history.js";
 
 const route = useRoute();
 const router = useRouter();
@@ -130,7 +132,36 @@ const {
   lyricsText,
   recommendations,
   isLoadingRecs,
+  loadDetailsData,
 } = useDetailsLogic(route);
+
+const { logTrackInteraction } = useHistoryLogic();
+
+watch(
+  () => route.query.id,
+  async (newId, oldId) => {
+    if (!newId || newId === oldId) return;
+
+    try {
+      const clickedTrack = {
+        id: route.query.id,
+        name: route.query.title || route.query.name || "Unknown Title",
+        artist: route.query.artist || "Unknown Artist",
+        image: route.query.image || "fallback.jpg",
+        mood: route.query.mood || null,
+        emoticon: route.query.emoticon || "🎵",
+      };
+
+      await logTrackInteraction(clickedTrack);
+    } catch (err) {
+      console.error("Failed to log recommendation click to backend:", err);
+    }
+
+    if (typeof loadDetailsData === "function") {
+      loadDetailsData(route);
+    }
+  },
+);
 </script>
 <style>
 @import "../styles/main.css";

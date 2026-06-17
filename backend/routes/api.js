@@ -15,8 +15,9 @@ const authCallbackRoutes = require("./auth-callback");
 // Import custom JWT middleware
 const { authenticateJWT } = require("../middleware/auth");
 
-// Import Tracks router
+// Import Feature sub-routers
 const tracksRouter = require("./tracks");
+const usersRouter = require("./users");
 
 // Test API Endpoint
 router.get("/status", (req, res) => {
@@ -26,8 +27,13 @@ router.get("/status", (req, res) => {
 // Auth routers
 router.use("/auth", authRoutes);
 router.use("/auth", authCallbackRoutes);
-//Track router
+
+// Track router
 router.use("/tracks", tracksRouter);
+
+// User Features router
+router.use("/users", authenticateJWT, usersRouter); //  /api/users/profile/mood-settings
+router.use("/", authenticateJWT, usersRouter); //  /api/history
 
 router.get("/search", authenticateJWT, async (req, res, next) => {
   try {
@@ -101,7 +107,6 @@ router.get("/search", authenticateJWT, async (req, res, next) => {
         q: query,
         type: "track,artist,album",
         limit: 9,
-        // Evilness Spotify limit is 10 for apps running in Dev ..wanted 12, chgd to 9 for UI
       },
     });
 

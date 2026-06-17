@@ -1,4 +1,5 @@
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted } from "vue";
+import axios from "axios";
 
 const activeRingTab = ref("daily");
 const clickedMoodsHistory = ref([]);
@@ -26,146 +27,127 @@ export function useMoodLogic() {
     objectifying: { label: "Objectifying", emoticon: "🔍" },
   };
 
-  const defaultCategories = [
-    {
-      id: "cat-hype",
-      name: "✨ Hype & High Energy",
-      targets: ["energetic", "upbeat", "hype", "pumped", "party"],
-    },
-    {
-      id: "cat-happy",
-      name: "☀️ Happy & Positivity",
-      targets: ["happy", "joyful", "cheerful", "bright"],
-    },
-    {
-      id: "cat-chill",
-      name: "🌊 Chill & Relaxation",
-      targets: ["chill", "relaxed", "calm", "mellow", "lofi"],
-    },
-    {
-      id: "cat-melancholy",
-      name: "🌧️ Melancholy & Deep",
-      targets: ["melancholic", "sad", "gloomy", "somber", "nostalgic"],
-    },
-    {
-      id: "cat-aggressive",
-      name: "🔥 Aggressive & Fierce",
-      targets: ["angry", "aggressive", "dark", "heavy"],
-    },
-    {
-      id: "cat-mystical",
-      name: "🔮 Mystical & Cosmic",
-      targets: ["mysterious", "ethereal", "romantic", "grounded"],
-    },
-    {
-      id: "cat-relation",
-      name: "💖 Romance & Relationships",
-      targets: ["romantic", "objectifying", "vulnerable", "cherished"],
-    },
-  ];
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("app_jwt");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
 
-  onMounted(() => {
-    // Load History
-    const savedHistory = localStorage.getItem("mimic_daily_mood_clicks");
-    if (savedHistory) {
-      try {
-        clickedMoodsHistory.value = JSON.parse(savedHistory) || [];
-      } catch (e) {
-        console.error("Failed to parse mood history", e);
+  // Get fm DB
+  onMounted(async () => {
+    try {
+      const response = await axios.get("/api/users/profile/mood-settings", {
+        headers: getAuthHeader(),
+      });
+      const data = response.data;
+
+      isSpyingStopped.value = data.privacyShield ?? false;
+      isSpyingStoppedOnce.value = data.privacyShieldOnce ?? false;
+      permanentCustomMoods.value = data.permanentCustomMoods || [];
+      dynamicCategories.value = data.customCategories || [];
+      activeLegendMoodsState.value = data.activeLegendMoodsState || [];
+
+      // Fallback defaults
+      if (!dynamicCategories.value.length) {
+        dynamicCategories.value = [
+          {
+            id: "cat-hype",
+            name: "✨ Hype & High Energy",
+            targets: ["energetic", "upbeat"],
+          },
+          {
+            id: "cat-happy",
+            name: "☀️ Happy & Positivity",
+            targets: ["happy", "joyful"],
+          },
+          {
+            id: "cat-chill",
+            name: "🌊 Chill & Relaxation",
+            targets: ["chill", "relaxed"],
+          },
+          {
+            id: "cat-melancholy",
+            name: "🌧️ Melancholy & Deep",
+            targets: ["melancholic", "sad"],
+          },
+          {
+            id: "cat-aggressive",
+            name: "🔥 Aggressive & Fierce",
+            targets: ["angry", "aggressive"],
+          },
+          {
+            id: "cat-mystical",
+            name: "🔮 Mystical & Cosmic",
+            targets: ["mysterious", "ethereal"],
+          },
+          {
+            id: "cat-relation",
+            name: "💖 Romance & Relationships",
+            targets: ["romantic"],
+          },
+        ];
       }
-    }
 
-    // Load Privacy
-    if (localStorage.getItem("mimic_privacy_shield") === "true") {
-      isSpyingStopped.value = true;
-      isSpyingStoppedOnce.value = true;
-    }
-
-    // Load AI Moods
-    const savedCustomMoods = localStorage.getItem("mimic_permanent_ai_moods");
-    if (savedCustomMoods) {
-      try {
-        permanentCustomMoods.value = JSON.parse(savedCustomMoods) || [];
-      } catch (e) {
-        console.error("Failed to parse dynamic AI moods", e);
+      if (!activeLegendMoodsState.value.length) {
+        activeLegendMoodsState.value = Object.entries(moodMatrixConfig).map(
+          ([id, cfg]) => ({
+            id,
+            name: cfg.label,
+            emoticon: cfg.emoticon,
+            categoryId: null,
+          }),
+        );
       }
-    }
-
-    // Load Cats
-    const savedCategories =
-      localStorage.getItem("mimic_dynamic_categories") ||
-      localStorage.getItem("mimic_custom_categories");
-    if (savedCategories) {
-      try {
-        dynamicCategories.value = JSON.parse(savedCategories);
-      } catch (e) {
-        dynamicCategories.value = [...defaultCategories];
-      }
-    } else {
-      dynamicCategories.value = [...defaultCategories];
-    }
-
-    // Load Active Moods
-    const savedMoods =
-      localStorage.getItem("mimic_active_moods_state") ||
-      localStorage.getItem("mimic_active_legend_state");
-    if (savedMoods) {
-      try {
-        activeLegendMoodsState.value = JSON.parse(savedMoods);
-      } catch (e) {
-        console.error("Failed to parse legend states", e);
-      }
-    } else {
-      activeLegendMoodsState.value = Object.entries(moodMatrixConfig).map(
-        ([id, cfg]) => ({
-          id,
-          name: cfg.label,
-          emoticon: cfg.emoticon,
-          categoryId: null,
-        }),
-      );
+    } catch (e) {
+      console.error("Failed to recover user mood preferences from backend.", e);
     }
   });
 
-  // Sync w/ Local
-  watch(
-    dynamicCategories,
-    (newVal) => {
-      localStorage.setItem("mimic_dynamic_categories", JSON.stringify(newVal));
-      localStorage.setItem("mimic_custom_categories", JSON.stringify(newVal));
-    },
-    { deep: true },
-  );
+  // Helper Update DB
+  const syncSettingsToBackend = async () => {
+    try {
+      await axios.put(
+        "/api/users/profile/mood-settings",
+        {
+          privacyShield: isSpyingStopped.value,
+          privacyShieldOnce: isSpyingStoppedOnce.value,
+          permanentCustomMoods: permanentCustomMoods.value,
+          customCategories: dynamicCategories.value,
+          activeLegendMoodsState: activeLegendMoodsState.value,
+        },
+        {
+          headers: getAuthHeader(),
+        },
+      );
+    } catch (err) {
+      console.error(
+        "Failed to commit updated mood parameters to backend:",
+        err,
+      );
+    }
+  };
 
-  watch(
-    activeLegendMoodsState,
-    (newVal) => {
-      localStorage.setItem("mimic_active_moods_state", JSON.stringify(newVal));
-      localStorage.setItem("mimic_active_legend_state", JSON.stringify(newVal));
-    },
-    { deep: true },
-  );
-
-  // Cats Actions
-  const addNewCategory = (name) => {
+  // CRUD
+  const addNewCategory = async (name) => {
     const newCat = {
       id: `cat-${Date.now()}`,
       name: name || "New Vibe Cluster",
       targets: [],
     };
     dynamicCategories.value.push(newCat);
+    await syncSettingsToBackend();
   };
 
-  const updateCategoryDetails = (categoryId, updatedName) => {
+  const updateCategoryDetails = async (categoryId, updatedName) => {
     const category = dynamicCategories.value.find(
       (cat) => cat && cat.id === categoryId,
     );
     if (category && updatedName) {
       category.name = updatedName;
+      await syncSettingsToBackend();
     }
   };
 
-  const deleteCategory = (categoryId) => {
+  const deleteCategory = async (categoryId) => {
     if (!categoryId) return;
     dynamicCategories.value = dynamicCategories.value.filter(
       (cat) => cat && cat.id !== categoryId,
@@ -175,14 +157,14 @@ export function useMoodLogic() {
         moodItem.categoryId = null;
       }
     });
+    await syncSettingsToBackend();
   };
 
-  // Mood Actions
-  const moveMoodToCategory = (moodId, targetCategoryId) => {
+  const moveMoodToCategory = async (moodId, targetCategoryId) => {
     if (!moodId) return;
     const lowerId = moodId.toLowerCase().trim();
-
     let mood = activeLegendMoodsState.value.find((m) => m && m.id === lowerId);
+
     if (mood) {
       mood.categoryId =
         targetCategoryId === "cat-misc" ? null : targetCategoryId;
@@ -197,15 +179,16 @@ export function useMoodLogic() {
         categoryId: targetCategoryId === "cat-misc" ? null : targetCategoryId,
       });
     }
+    await syncSettingsToBackend();
   };
 
-  const updateMoodDetails = (moodId, updatedName, updatedEmoticon) => {
+  const updateMoodDetails = async (moodId, updatedName, updatedEmoticon) => {
     if (!moodId) return;
     const lowerId = moodId.toLowerCase().trim();
-
     const mood = activeLegendMoodsState.value.find(
       (m) => m && m.id === lowerId,
     );
+
     if (mood) {
       if (updatedName) mood.name = updatedName;
       if (updatedEmoticon) mood.emoticon = updatedEmoticon;
@@ -225,36 +208,27 @@ export function useMoodLogic() {
       if (aiMatch) {
         if (updatedName) aiMatch.name = updatedName;
         if (updatedEmoticon) aiMatch.emoticon = updatedEmoticon;
-        localStorage.setItem(
-          "mimic_permanent_ai_moods",
-          JSON.stringify(permanentCustomMoods.value),
-        );
       }
     }
+    await syncSettingsToBackend();
   };
 
-  const deleteMoodFromState = (moodId) => {
+  const deleteMoodFromState = async (moodId) => {
     if (!moodId) return;
     const lowerId = moodId.toLowerCase().trim();
 
-    // Filter fm View
     activeLegendMoodsState.value = activeLegendMoodsState.value.filter(
       (m) => m && m.id !== lowerId,
     );
-
-    // Filter for AI generated
     if (permanentCustomMoods.value) {
       permanentCustomMoods.value = permanentCustomMoods.value.filter(
         (m) => m && m.id !== lowerId,
       );
-      localStorage.setItem(
-        "mimic_permanent_ai_moods",
-        JSON.stringify(permanentCustomMoods.value),
-      );
     }
+    await syncSettingsToBackend();
   };
 
-  // Moods Calculations
+  // Mood Prediction via Counts
   const getAggregateMood = (sourceArray) => {
     if (!sourceArray || !sourceArray.length) return null;
     const counts = {};
@@ -287,8 +261,9 @@ export function useMoodLogic() {
       history.filter(
         (item) =>
           item &&
-          item.isDailyEligible &&
-          (!item.timestamp || item.timestamp >= oneDayAgo),
+          item.isDailyEligible !== false &&
+          item.isDailyEligible !== 0 &&
+          (!item.timestamp || Number(item.timestamp) >= oneDayAgo),
       ),
     );
   });
@@ -300,8 +275,9 @@ export function useMoodLogic() {
       history.filter(
         (item) =>
           item &&
-          item.isWeeklyEligible &&
-          (!item.timestamp || item.timestamp >= oneWeekAgo),
+          item.isWeeklyEligible !== false &&
+          item.isWeeklyEligible !== 0 &&
+          (!item.timestamp || Number(item.timestamp) >= oneWeekAgo),
       ),
     );
   });
@@ -313,8 +289,9 @@ export function useMoodLogic() {
       history.filter(
         (item) =>
           item &&
-          item.isMonthlyEligible &&
-          (!item.timestamp || item.timestamp >= oneMonthAgo),
+          item.isMonthlyEligible !== false &&
+          item.isMonthlyEligible !== 0 &&
+          (!item.timestamp || Number(item.timestamp) >= oneMonthAgo),
       ),
     );
   });
@@ -325,17 +302,35 @@ export function useMoodLogic() {
     return dominantMood.value;
   });
 
-  const purgeClickHistory = () => {
+  // Privacy controls
+  const purgeClickHistory = async () => {
     isSpyingStopped.value = true;
     isSpyingStoppedOnce.value = true;
-    localStorage.setItem("mimic_privacy_shield", "true");
+
+    // Clear
     clickedMoodsHistory.value = (clickedMoodsHistory.value || []).map(
-      (item) => ({ ...item, isDailyEligible: false }),
+      (item) => ({
+        ...item,
+        isDailyEligible: false,
+      }),
     );
-    localStorage.setItem(
-      "mimic_daily_mood_clicks",
-      JSON.stringify(clickedMoodsHistory.value),
-    );
+
+    // Delete/Update DB
+    try {
+      await axios.post(
+        "/api/history/purge-privacy",
+        {},
+        { headers: getAuthHeader() },
+      );
+      await syncSettingsToBackend();
+    } catch (e) {
+      console.error("Failed to complete privacy purge on server:", e);
+    }
+  };
+
+  const restoreMoodRingFeature = async () => {
+    isSpyingStopped.value = false;
+    await syncSettingsToBackend();
   };
 
   const moodOppositesMap = {
@@ -392,9 +387,6 @@ export function useMoodLogic() {
     updateMoodDetails,
     deleteMoodFromState,
     purgeClickHistory,
-    restoreMoodRingFeature: () => {
-      isSpyingStopped.value = false;
-      localStorage.setItem("mimic_privacy_shield", "false");
-    },
+    restoreMoodRingFeature,
   };
 }

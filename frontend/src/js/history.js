@@ -1,15 +1,29 @@
 import { ref, computed, onMounted } from "vue";
+import axios from "axios";
 
 export function useHistoryLogic(goToSongDetailsPage) {
   const clickedTracks = ref([]);
 
-  const loadHistory = () => {
-    const savedHistory = localStorage.getItem("mimic_daily_mood_clicks");
-    if (savedHistory) {
-      try {
-        clickedTracks.value = JSON.parse(savedHistory);
-      } catch (e) {
-        console.error("Failed to process history tracking logs", e);
+  // Helper Get User JWT
+  const getAuthHeader = () => {
+    const token = localStorage.getItem("app_jwt");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  // Fetch History fm DB
+  const loadHistory = async () => {
+    try {
+      const response = await axios.get("/api/history", {
+        headers: getAuthHeader(),
+      });
+      clickedTracks.value = response.data.history || response.data;
+    } catch (e) {
+      console.error("Failed to process history tracking logs from backend:", e);
+      if (
+        e.response &&
+        (e.response.status === 401 || e.response.status === 403)
+      ) {
+        // ? Need session expiration handler
       }
     }
   };
@@ -20,48 +34,79 @@ export function useHistoryLogic(goToSongDetailsPage) {
     return [...clickedTracks.value].reverse();
   });
 
-  const logTrackInteraction = (track) => {
+  // Tracking Persist
+  const logTrackInteraction = async (track) => {
     const privacyShield =
       localStorage.getItem("mimic_privacy_shield") === "true";
+
     if (privacyShield) {
       if (goToSongDetailsPage) goToSongDetailsPage(track);
       return;
     }
 
-    const now = Date.now();
-    const interactedTrack = {
-      id: track.id || now.toString(),
-      name: track.name,
-      artist: track.artist || "Unknown Artist",
-      image: track.image || "",
-      mood: track.mood || null,
-      emoticon: track.emoticon || "🎵",
-      timestamp: now,
-      isDailyEligible: true,
-      isWeeklyEligible: true,
-      isMonthlyEligible: true,
-    };
+    try {
+      // Send to Backend
+      const response = await axios.post(
+        "/api/history",
+        {
+          spotifyId: track.id,
+          name: track.name,
+          artist: track.artist || "Unknown Artist",
+          image: track.image || "",
+          mood: track.mood || null,
+          emoticon: track.emoticon || "🎵",
+        },
+        {
+          headers: getAuthHeader(),
+        },
+      );
 
-    clickedTracks.value.push(interactedTrack);
-    localStorage.setItem(
-      "mimic_daily_mood_clicks",
-      JSON.stringify(clickedTracks.value),
-    );
-
-    if (goToSongDetailsPage) {
-      goToSongDetailsPage(track);
+      // Update State
+      if (response.data.success || response.data) {
+        const savedTrack = response.data.track || response.data;
+        clickedTracks.value.push(savedTrack);
+      }
+    } catch (e) {
+      console.error("Failed to log interaction to backend:", e);
+    } finally {
+      if (goToSongDetailsPage) {
+        goToSongDetailsPage(track);
+      }
     }
   };
 
-  const clearAllHistory = () => {
-    clickedTracks.value = [];
-    localStorage.removeItem("mimic_daily_mood_clicks");
+  // Clear History
+  const clearAllHistory = async () => {
+    try {
+      await axios.delete("/api/history", {
+        headers: getAuthHeader(),
+      });
+      clickedTracks.value = [];
+    } catch (e) {
+      console.error("Failed to wipe history on backend:", e);
+    }
+  };
+
+  // Delete Song
+  const deleteSingleTrackFromHistory = async (trackId) => {
+    try {
+      await axios.delete(`/api/history/${trackId}`, {
+        headers: getAuthHeader(),
+      });
+      clickedTracks.value = clickedTracks.value.filter((t) => t.id !== trackId);
+    } catch (e) {
+      console.error(
+        `Failed to remove item ${trackId} from backend history:`,
+        e,
+      );
+    }
   };
 
   return {
     historyTracks,
     logTrackInteraction,
     clearAllHistory,
+    deleteSingleTrackFromHistory,
     refreshHistory: loadHistory,
   };
 }
