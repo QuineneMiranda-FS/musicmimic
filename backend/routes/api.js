@@ -15,6 +15,10 @@ const authCallbackRoutes = require("./auth-callback");
 // Import custom JWT middleware
 const { authenticateJWT } = require("../middleware/auth");
 
+// Import Feature sub-routers
+const tracksRouter = require("./tracks");
+const usersRouter = require("./users");
+
 // Test API Endpoint
 router.get("/status", (req, res) => {
   res.json({ status: "success", message: "API is online" });
@@ -23,6 +27,13 @@ router.get("/status", (req, res) => {
 // Auth routers
 router.use("/auth", authRoutes);
 router.use("/auth", authCallbackRoutes);
+
+// Track router
+router.use("/tracks", tracksRouter);
+
+// User Features router
+router.use("/users", authenticateJWT, usersRouter); //  /api/users/profile/mood-settings
+router.use("/", authenticateJWT, usersRouter); //  /api/history
 
 router.get("/search", authenticateJWT, async (req, res, next) => {
   try {
@@ -33,7 +44,7 @@ router.get("/search", authenticateJWT, async (req, res, next) => {
         .json({ error: "Query parameter 'q' is required." });
     }
 
-    // Fetch user record from db
+    // Fetch user record from DB
     const dbUser = await User.findByPk(req.user.userId);
     if (!dbUser || !dbUser.spotifyAccessToken) {
       return res
@@ -59,29 +70,25 @@ router.get("/search", authenticateJWT, async (req, res, next) => {
       (response) => response,
       async (error) => {
         const originalRequest = error.config;
-
         if (error.response?.status === 401 && !originalRequest._retry) {
           originalRequest._retry = true;
-
           try {
             console.log(
               `[Spotify Auth] Access token expired for user ${dbUser.id}. Refreshing...`,
             );
-
             const newAccessToken = await refreshSpotifyToken(
               dbUser.spotifyRefreshToken,
             );
 
-            // Update db
+            // Update DB
             dbUser.spotifyAccessToken = newAccessToken;
             await dbUser.save();
 
-            // New Token
+            // Update New Token headers
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
 
-            return axios(originalRequest);
+            return spotifyClient(originalRequest);
           } catch (refreshError) {
-            // Invalid token
             console.error(
               "[Spotify Auth] Critical: Refresh token failed.",
               refreshError.message,
@@ -94,8 +101,14 @@ router.get("/search", authenticateJWT, async (req, res, next) => {
     );
 
     // Request
-    const spotifyUrl = `/search?q=${encodeURIComponent(query)}&type=track,artist,album&limit=10`;
-    const searchResponse = await spotifyClient.get(spotifyUrl);
+    const spotifyUrl = "/search";
+    const searchResponse = await spotifyClient.get(spotifyUrl, {
+      params: {
+        q: query,
+        type: "track,artist,album",
+        limit: 9,
+      },
+    });
 
     // Results (with external Spotify URLs)
     const tracks =
@@ -105,6 +118,7 @@ router.get("/search", authenticateJWT, async (req, res, next) => {
         artist: track.artists.map((a) => a.name).join(", "),
         album: track.album.name,
         spotifyUrl: track.external_urls?.spotify || null,
+        previewUrl: track.preview_url || null,
         image:
           track.album.images && track.album.images.length > 0
             ? track.album.images[0].url

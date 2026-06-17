@@ -1,7 +1,6 @@
 import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router"; // Ensure this is imported
+import { useRouter } from "vue-router";
 import axios from "axios";
-
 const username = ref("Authenticated Listener");
 const searchQuery = ref("");
 const hasSearched = ref(false);
@@ -19,10 +18,12 @@ export function useSearchLogic() {
     }
   });
 
-  // Search async function
+  // Search
   async function executeSearch() {
     if (!searchQuery.value.trim()) return;
+
     const token = localStorage.getItem("app_jwt");
+
     try {
       const response = await fetch(
         `/api/search?q=${encodeURIComponent(searchQuery.value)}`,
@@ -32,11 +33,14 @@ export function useSearchLogic() {
           },
         },
       );
+
       if (response.status === 401 || response.status === 403) {
         logout();
         return;
       }
+
       const data = await response.json();
+
       if (data.success) {
         results.value = data.results;
         hasSearched.value = true;
@@ -48,13 +52,16 @@ export function useSearchLogic() {
 
   async function analyzeMoodInline(track) {
     if (loadingTrackId.value) return;
+
     loadingTrackId.value = track.id;
+
     try {
       const response = await axios.post("/api/tracks/analyze", {
         spotifyId: track.id,
         title: track.name,
         artist: track.artist,
       });
+
       track.mood = response.data.mood;
       track.emoticon = response.data.emoticon;
     } catch (error) {
@@ -65,13 +72,13 @@ export function useSearchLogic() {
     }
   }
 
-  // Redirection router push function
+  // Redirection router push
   function goToSongDetailsPage(track) {
     router.push({
-      name: "SongDetails",
+      name: "MoodSearch",
       query: {
         id: track.id,
-        title: track.name || track.title,
+        title: track.name,
         artist: track.artist,
         mood: track.mood || "Analyzing...",
         emoticon: track.emoticon || "🎵",
@@ -84,11 +91,13 @@ export function useSearchLogic() {
   // Clear global tokens/send user back to login
   function logout() {
     localStorage.removeItem("app_jwt");
+
     const spotifyLogoutWindow = window.open(
       "https://spotify.com",
       "_blank",
       "width=500,height=400,top=100,left=100",
     );
+
     setTimeout(() => {
       if (spotifyLogoutWindow) {
         spotifyLogoutWindow.close();
@@ -97,6 +106,7 @@ export function useSearchLogic() {
       hasSearched.value = false;
       results.value = { tracks: [], artists: [], albums: [] };
       searchQuery.value = "";
+
       router.push("/");
     }, 2000);
   }

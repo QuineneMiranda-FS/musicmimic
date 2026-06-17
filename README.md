@@ -1,22 +1,19 @@
 # Music Mimic
 
-## Spotify UI
-
-A music search app utilizing Spotify's REST Web API.
-
 ## Project Overview
 
-Application built for Full Sail University WDV339 Web Development Course.
+An interactive music search application built for Full Sail University's **WDV339 Web Development** course. The application features a strictly decoupled architecture utilizing a Vite/Vue frontend and an Express/Sequelize backend.
 
 ### App Requirements
 
-- **UI Design**: The UX/UI of the application utilizing design created in week 1.
-- **Login Screen**: Screen displayed if no JWT is stored to use the Spotify API.
-- **Search Screen**: Screen user is taken to if a JWT exists and isn't expired, bypassing the login page directly to the search page.
-- **No Results Message**: A "no results" message if no search is performed, or API call returned with no results.
-- **Thumbnails to Links**: Each result thumbnail links out to a Spotify web player link.
-- **Decoupled**: Frontend application (Vite + Vue) is strictly decoupled from the backend application (Express + Sequelize) that handles JWTs.
-- **Secrets**: All application secret credentials are not viewable in the repository.
+- **UI Design**: The UX/UI of the application utilizes custom designs created in Week 1.
+- **Login Screen**: Displayed automatically if no valid JSON Web Token (JWT) is stored to authenticate and access the backend.
+- **Search Screen**: Users are automatically routed here if a valid, unexpired JWT exists, bypassing the login page entirely.
+- **No Results Message**: Displays an informative message if no search has been performed yet, or if the API call returns empty.
+- **Thumbnails to Links**: Each track result thumbnail acts as a direct link out to its corresponding Spotify web player page.
+- **Decoupled Architecture**: The frontend application (Vite + Vue) is strictly separated from the backend API (Express + Sequelize) handling authentication.
+- **Secrets Management**: All sensitive API keys, database credentials, and signing secrets are completely hidden from the public repository using environment variables.
+- **Lyrics Scraping**: Uses the Genius API alongside Cheerio to dynamically fetch, parse, and clean song lyrics on the server side.
 
 ---
 
@@ -26,7 +23,7 @@ Before setting up the project locally, ensure you have the following software in
 
 - **Node.js** (v18.0.0 or higher recommended)
 - **npm** (comes bundled with Node.js)
-- **MySQL Server** (Ensure the system service is running active on port 3306)
+- **MySQL Server** (Ensure the system service is active and running on port 3306)
 
 ---
 
@@ -34,7 +31,9 @@ Before setting up the project locally, ensure you have the following software in
 
 Follow these steps to set up both the backend API and frontend application locally.
 
-### 1. Clone the repository and navigate into the project directory:
+### 1. Clone the Repository
+
+Clone the project and navigate into your root project folder:
 
 ```bash
 git clone <your-repository-url>
@@ -43,11 +42,11 @@ cd <your-project-name>
 
 ### 2. Backend Setup (Express & Sequelize API)
 
-Navigate to the backend folder, install dependencies, and configure environment secrets.
+Navigate to the backend folder, install your dependencies, and configure your environment secrets.
 
 ```bash
 cd backend
-npm install express sequelize mysql2 jsonwebtoken axios dotenv
+npm install express sequelize mysql2 jsonwebtoken axios dotenv cheerio
 npm install --save-dev sequelize-cli nodemon
 ```
 
@@ -74,13 +73,16 @@ JWT_EXPIRES_IN=1h
 SPOTIFY_CLIENT_ID=your_spotify_client_id_here
 SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
 SPOTIFY_REDIRECT_URI=http://127.0.0.1:3000/api/auth/spotify/callback
+
+# Genius API Credentials
+GENIUS_ACCESS_TOKEN=your_genius_access_token_here
 ```
 
-_Note: This project uses a custom `src/` layout managed by a `.sequelizerc` file inside the backend directory. Ensure your `config/config.js` and `models/index.js` point to these environment variables._
+> **Note:** This project uses a custom `src/` layout managed by a `.sequelizerc` file inside the backend directory. Ensure your `config/config.js` and `models/index.js` point properly to these environment variables.
 
 #### Initialize Database Structure
 
-Run the following commands while still inside the `backend/` directory:
+Run the following commands while still inside the `backend/` directory to create and migrate your schema:
 
 ```bash
 npx sequelize-cli db:create
@@ -105,33 +107,51 @@ Create a `.env` file inside the `frontend/` directory:
 VITE_API_URL=http://127.0.0.1:3000
 ```
 
-_Note: Vite requires frontend environment variables to be prefixed with `VITE_` to protect your application from leaking backend secrets to the browser client.\_
+> **Note:** Vite requires frontend environment variables to be prefixed with `VITE_` to protect your application from leaking backend secrets to the browser client.
+
+### 4. Install Local AI
+
+Open a terminal window and download Ollama to power the LLM (local language model) layer:
+
+```bash
+curl -fsSL https://ollama.com/install.sh | sh
+```
 
 ---
 
 ## Running the Application
 
-Because this application features a strictly decoupled frontend and backend, you must run both servers using separate terminal windows. Note for self: debating concurrently...research that more.
+Because this application features a strictly decoupled architecture, you must run your local services simultaneously using three separate terminal windows.
 
-### Start Backend API Server
+### Terminal Window 1: Start Ollama
+
+Boot up your local AI engine:
+
+```bash
+ollama run llama3
+```
+
+_The Ollama local service will look for `llama3` (it will download it on the first run if missing) and listen on:_ **`http://127.0.0.1:11434`**
+
+### Terminal Window 2: Start Backend API Server
 
 ```bash
 cd backend
 npm run dev
 ```
 
-\*The backend REST API service will listen on: **`http://127.0.0.1:3000`\***
+_The backend REST API service will listen on:_ **`http://127.0.0.1:3000`**
 
-### Start Frontend Application Server
+### Terminal Window 3: Start Frontend Application Server
 
 ```bash
 cd frontend
 npm run dev
 ```
 
-\*The Vite engine will be locally on: **`http://127.0.0.1:5173`\***
+_The Vite engine will compile locally and serve on:_ **`http://127.0.0.1:5173`**
 
-Open your web browser and navigate directly to the Vite frontend URL (**`http://127.0.0.1:5173`**) to launch.
+Once all services are running, open your web browser and navigate directly to the Vite frontend URL (**`http://127.0.0.1:5173`**) to launch the app.
 
 ---
 
@@ -139,6 +159,8 @@ Open your web browser and navigate directly to the Vite frontend URL (**`http://
 
 - **API Documentation:** [Spotify Web API Documentation](https://developer.spotify.com)
 - **Spotify Design Documentation:** [Spotify Design Guidelines](https://developer.spotify.com/documentation/design)
+- **Lyrics Source & API:** [Genius Developer Portal](https://genius.com) (To register and generate your `GENIUS_ACCESS_TOKEN`)
+- **Local AI Engine:** [Ollama Official Website](https://ollama.com) (For local LLM setup instructions)
 
 ## Contact
 

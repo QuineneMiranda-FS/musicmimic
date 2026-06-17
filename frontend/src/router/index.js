@@ -11,42 +11,57 @@ const router = createRouter({
       meta: { requiresAuth: false },
     },
     {
-      path: "/search",
-      name: "search",
-      component: () => import("../views/SearchView.vue"),
+      path: "/dashboard",
+      name: "Dashboard",
+      component: () => import("../views/Dashboard.vue"),
       meta: { requiresAuth: true },
+    },
+    {
+      path: "/track-details",
+      name: "SongDetails",
+      component: () => import("../views/SongDetailsView.vue"),
+      meta: { requiresAuth: true },
+    },
+    // Catch All Redirect to Dashboard
+    {
+      path: "/:pathMatch(.*)*",
+      redirect: "/dashboard",
     },
   ],
 });
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const token = localStorage.getItem("app_jwt");
-
-  // Chk for token
   const urlParams = new URLSearchParams(window.location.search);
   const tokenFromUrl = urlParams.get("token");
 
-  if (tokenFromUrl) {
+  if (tokenFromUrl && to.path === "/dashboard") {
     localStorage.setItem("app_jwt", tokenFromUrl);
 
-    // Clear token
+    // Clear token from URL address bar
     const cleanUrl =
       window.location.protocol +
       "//" +
       window.location.host +
       window.location.pathname;
-    window.history.replaceState({ path: cleanUrl }, "", cleanUrl);
+    window.history.replaceState({}, "", cleanUrl);
 
-    return { path: "/search", replace: true };
+    return true;
   }
 
+  // Handle users with tokens in URL
+  if (tokenFromUrl) {
+    return { path: "/dashboard", replace: true };
+  }
+
+  // Deny unauthorized users access
   if (to.meta.requiresAuth && !token) {
     return { name: "login" };
   }
 
-  // Auth Users Skip Login
+  // Authenticated users skip login
   if (to.name === "login" && token) {
-    return { path: "/search" };
+    return { path: "/dashboard" };
   }
 
   return true;

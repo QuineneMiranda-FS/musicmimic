@@ -1,8 +1,8 @@
 module.exports = (sequelize, DataTypes) => {
-  return sequelize.define("User", {
+  const User = sequelize.define("User", {
     email: {
       type: DataTypes.STRING(255),
-      allowNull: true, // **Keep true: Spotify privacy settings can hide emails
+      allowNull: true,
       unique: "unique_user_email",
     },
     spotifyId: {
@@ -19,10 +19,19 @@ module.exports = (sequelize, DataTypes) => {
     spotifyRefreshToken: {
       type: DataTypes.TEXT,
     },
-    // Track when tokens expire
     spotifyTokenExpiresAt: {
       type: DataTypes.DATE,
       allowNull: true,
     },
+    moodSettings: {
+      type: DataTypes.JSON,
+      allowNull: true,
+    },
   });
+
+  User.associate = (models) => {
+    User.hasMany(models.History, { foreignKey: "userId", onDelete: "CASCADE" });
+  };
+
+  return User;
 };

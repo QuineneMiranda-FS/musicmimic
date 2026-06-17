@@ -1,6 +1,6 @@
 <template>
   <div id="app-container">
-    <!-- Fix: Add Nav and Header Here -->
+    <AppHeader />
     <main class="main-content">
       <RouterView />
     </main>
@@ -9,18 +9,5 @@
 
 <script setup>
 import { RouterView } from "vue-router";
+import AppHeader from "./components/AppHeader.vue";
 </script>
-
-<style>
-/* Global styles ...move to css/ */
-body {
-  margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: #121212;
-  color: #ffffff;
-}
-#app-container {
-  min-height: 100vh;
-}
-</style>
