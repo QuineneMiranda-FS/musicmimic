@@ -334,36 +334,75 @@ export function useMoodLogic() {
   };
 
   const moodOppositesMap = {
-    chill: { label: "Energetic", query: "fast high energy party electronic" },
+    // --- Energy & Intensity ---
+    chill: {
+      label: "Energetic",
+      query: "fast high-energy party electronic dance hyperpop",
+    },
     energetic: {
       label: "Chill",
-      query: "lofi lofi-chill relaxation calm ambient",
+      query: "lofi relaxation calm ambient slow-tempo minimalist",
     },
-    angry: {
+
+    // --- Core Emotions ---
+    happy: {
+      label: "Sad",
+      query: "sad melancholic cinematic slow weeping acoustic-ballad",
+    },
+    sad: {
       label: "Happy",
-      query: "happy acoustic cheerful uplifting bright",
+      query: "happy cheerful uplifting bright joyful feel-good",
     },
-    happy: { label: "Sad", query: "sad melancholic cinematic slow deep" },
-    melancholic: {
-      label: "Upbeat",
-      query: "dance pop disco joyful celebratory",
+
+    // --- Aggression vs. Peace ---
+    angry: {
+      label: "Peaceful",
+      query: "peaceful serene meditative gentle acoustic soft-piano",
     },
-    romantic: {
-      label: "Bitter",
-      query: "resentful bitter acoustic conflict independent",
+    peaceful: {
+      label: "Angry",
+      query: "angry aggressive metal hardcore heavy-distortion intense",
     },
+
+    // --- Vibe & Texture ---
     mysterious: {
-      label: "Ethereal",
-      query: "dreamy ambient atmospheric celestial",
+      label: "Clear & Direct",
+      query: "pop straightforward acoustic singer-songwriter classic-rock",
     },
+    clear_direct: {
+      // CamelCase or snake_case recommended for object keys
+      label: "Mysterious",
+      query:
+        "mysterious eerie dark-ambient suspenseful experimental industrial",
+    },
+
     ethereal: {
       label: "Grounded",
-      query: "indie rock folk standard classic acoustic",
+      query: "grounded roots folk blues standard classic-rock raw-acoustic",
     },
-    upbeat: { label: "Chill", query: "fast high energy party electronic" },
     grounded: {
-      label: "Energetic",
-      query: "skate-punk synthesizer power upbeat",
+      label: "Ethereal",
+      query: "ethereal dreamy shoegaze ambient atmospheric celestial dream-pop",
+    },
+
+    // --- Social & Relational ---
+    romantic: {
+      label: "Bitter & Cynical",
+      query: "bitter resentful heartbreak angst aggressive-breakup dark",
+    },
+    bitter_cynical: {
+      label: "Romantic",
+      query: "romantic love-song sensual passionate sweet intimate r&b",
+    },
+
+    // --- Tempo & Motion ---
+    upbeat: {
+      label: "Melancholic",
+      query: "melancholic downtempo somber moody dark-pop",
+    },
+    melancholic: {
+      label: "Upbeat",
+      query: "upbeat dance pop disco joyful celebratory synthpop",
     },
   };
 
