@@ -192,7 +192,6 @@ export function useSearchViewLogic() {
     });
   });
 
-  // Click Handling
   const handleTrackClick = async (track) => {
     if (moodLogic?.isSpyingStopped && !moodLogic.isSpyingStopped.value) {
       await logTrackInteraction(track);
@@ -220,31 +219,24 @@ export function useSearchViewLogic() {
     }
   };
 
-  // Newest First History
   const reversedHistory = computed(() => {
     const history = moodLogic?.clickedMoodsHistory?.value;
     if (!history || !Array.isArray(history) || history.length === 0) return [];
 
-    const dailyTracks = history.filter(
-      (track) =>
-        track && track.isDailyEligible !== false && track.isDailyEligible !== 0,
-    );
-
-    return [...dailyTracks].sort((a, b) => {
+    return [...history].sort((a, b) => {
       if (a.id && b.id && !isNaN(a.id) && !isNaN(b.id)) {
         return Number(b.id) - Number(a.id);
       }
-
-      // Fallback
       const timeA = a.timestamp || 0;
       const timeB = b.timestamp || 0;
       return timeB - timeA;
     });
   });
 
-  const clearOnlyVisualHistory = async () => {
+  const handleClearHistoryAction = async () => {
     try {
       await clearAllHistory();
+
       if (moodLogic?.clickedMoodsHistory?.value) {
         moodLogic.clickedMoodsHistory.value =
           moodLogic.clickedMoodsHistory.value.map((track) => {
@@ -257,15 +249,9 @@ export function useSearchViewLogic() {
             return track;
           });
       }
-
-      // Refresh
-      await refreshHistory();
-      if (moodLogic?.clickedMoodsHistory) {
-        moodLogic.clickedMoodsHistory.value = [...historyTracks.value];
-      }
     } catch (error) {
       console.error(
-        "Failed to smoothly clear daily visual history stream:",
+        "Failed to gracefully execute daily evaluation clear:",
         error,
       );
     }
@@ -355,7 +341,7 @@ export function useSearchViewLogic() {
     oppositeMoodButtonText,
     handleSearchSubmit,
     handleTrackClick,
-    clearOnlyVisualHistory,
+    clearOnlyVisualHistory: handleClearHistoryAction,
     triggerAlternativeSearch,
     handleQuestionMarkClick,
     deleteSongFromHistory,

@@ -18,7 +18,7 @@ export function useHistoryLogic(goToSongDetailsPage) {
       });
       clickedTracks.value = response.data.history || response.data;
     } catch (e) {
-      console.error("Failed to process history tracking logs from backend:", e);
+      console.error("Failed to process history from backend:", e);
       if (
         e.response &&
         (e.response.status === 401 || e.response.status === 403)
@@ -81,7 +81,11 @@ export function useHistoryLogic(goToSongDetailsPage) {
       await axios.delete("/api/history", {
         headers: getAuthHeader(),
       });
-      clickedTracks.value = [];
+
+      clickedTracks.value = clickedTracks.value.map((track) => ({
+        ...track,
+        isDailyEligible: false,
+      }));
     } catch (e) {
       console.error("Failed to wipe history on backend:", e);
     }
