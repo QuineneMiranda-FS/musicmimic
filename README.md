@@ -89,6 +89,16 @@ npx sequelize-cli db:create
 npx sequelize-cli db:migrate
 ```
 
+## Populating Mood Ring Mock Data
+
+> **Note:** Because the application binds mock history records to a real user account, you need to finish the Frontend Setup and Running the Application steps below.
+
+Once app is fired up, return to your backend terminal and run the seeder:
+
+```bash
+npx sequelize-cli db:seed:all
+```
+
 ### 3. Frontend Setup (Vite + Vue)
 
 Open a new terminal window, navigate to the frontend folder, and install your build dependencies.

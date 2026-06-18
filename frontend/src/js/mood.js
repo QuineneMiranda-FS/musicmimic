@@ -13,18 +13,50 @@ const permanentCustomMoods = ref([]);
 export function useMoodLogic() {
   const moodMatrixConfig = {
     energetic: { label: "Energetic", emoticon: "⚡" },
-    angry: { label: "Angry", emoticon: "🔥" },
-    happy: { label: "Happy", emoticon: "☀️" },
     upbeat: { label: "Upbeat", emoticon: "🕺" },
+    funky: { label: "Funky", emoticon: "🍄" },
+    happy: { label: "Happy", emoticon: "☀️" },
+    igniting: { label: "Igniting", emoticon: "🧨" },
+    uplifting: { label: "Uplifting", emoticon: "🙌" },
+    heroic: { label: "Heroic", emoticon: "🏆" },
+    euphoric: { label: "Euphoric", emoticon: "🤪" },
     chill: { label: "Chill", emoticon: "🌊" },
+    grounded: { label: "Grounded", emoticon: "🪵" },
+    nostalgic: { label: "Nostalgic", emoticon: "📼" },
+    disoriented: { label: "Disoriented", emoticon: "😕" },
+    conscious: { label: "Conscious", emoticon: "🧐" },
+    hypnotic: { label: "Hypnotic", emoticon: "🌀" },
+    reflective: { label: "Reflective", emoticon: "🪞" },
     melancholic: { label: "Melancholic", emoticon: "🌧️" },
+    sad: { label: "Sad", emoticon: "😥" },
+    harrowing: { label: "Harrowing", emoticon: "😱" },
+    tormented: { label: "Tormented", emoticon: "😩" },
+    pleading: { label: "Pleading", emoticon: "🥺" },
+    nervous: { label: "Nervous", emoticon: "😬" },
+    angry: { label: "Angry", emoticon: "😡" },
+    fiery: { label: "Fiery", emoticon: "🔥" },
+    empowered: { label: "Empowered", emoticon: "💪" },
+    agitated: { label: "Agitated", emoticon: "😤" },
+    furious: { label: "Furious", emoticon: "🤬" },
+    reckless: { label: "Reckless", emoticon: "😈" },
+    rebellious: { label: "Rebellious", emoticon: "🏴‍☠️" },
+    vindictive: { label: "Vindictive", emoticon: "😼" },
+    apocalyptic: { label: "Apocalyptic", emoticon: "🧟" },
     romantic: { label: "Romantic", emoticon: "💖" },
+    objectifying: { label: "Objectifying", emoticon: "🔍" },
+    lonely: { label: "Lonely", emoticon: "😔" },
+    infatuated: { label: "Infatuated", emoticon: "🥰" },
+    obsessive: { label: "Obsessive", emoticon: "😍" },
+    flirtatious: { label: "Flirtatious", emoticon: "😉" },
+    passionate: { label: "Passionate", emoticon: "💋" },
     mysterious: { label: "Mysterious", emoticon: "🔮" },
     ethereal: { label: "Ethereal", emoticon: "✨" },
-    grounded: { label: "Grounded", emoticon: "🪵" },
-    sad: { label: "Sad", emoticon: "😥" },
-    nostalgic: { label: "Nostalgic", emoticon: "📼" },
-    objectifying: { label: "Objectifying", emoticon: "🔍" },
+    whimsical: { label: "Whimsical", emoticon: "🧚" },
+    wistful: { label: "Wistful", emoticon: "🧞" },
+    cosmic: { label: "Cosmic", emoticon: "🌌" },
+    celestial: { label: "Celestial", emoticon: "🪐" },
+    mystical: { label: "Mystical", emoticon: "👁️" },
+    restrictive: { label: "Restrictive", emoticon: "🔒" },
   };
 
   const getAuthHeader = () => {
@@ -52,7 +84,7 @@ export function useMoodLogic() {
           {
             id: "cat-hype",
             name: "✨ Hype & High Energy",
-            targets: ["energetic", "upbeat", "flashy", "funky"],
+            targets: ["energetic", "upbeat", "flashy", "funky", "Rambunctious"],
           },
           {
             id: "cat-happy",
@@ -64,6 +96,8 @@ export function useMoodLogic() {
               "igniting",
               "boastful",
               "uplifting",
+              "heroic",
+              "euphoric",
               "hopeful",
             ],
           },
@@ -82,7 +116,16 @@ export function useMoodLogic() {
           {
             id: "cat-mind",
             name: "🧠 Mind & Cerebral",
-            targets: ["pensive", "hindsight", "contemplative"],
+            targets: [
+              "pensive",
+              "hindsight",
+              "restrictive",
+              "disoriented",
+              "conscious",
+              "hypnotic",
+              "reflective",
+              "contemplative",
+            ],
           },
           {
             id: "cat-melancholy",
@@ -94,6 +137,9 @@ export function useMoodLogic() {
               "remorseful",
               "tormented",
               "lamenting",
+              "harrowing",
+              "nervous",
+              "pleading",
               "disheartening",
             ],
           },
@@ -108,12 +154,26 @@ export function useMoodLogic() {
               "sarcastic",
               "reckless",
               "empowered",
+              "rebellious",
+              "vindictive",
+              "apocalyptic",
+              "agitated",
+              "fiery",
+              "furious",
             ],
           },
           {
             id: "cat-mystical",
             name: "🔮 Mystical & Cosmic",
-            targets: ["mysterious", "ethereal", "whimsy", "wistful"],
+            targets: [
+              "mysterious",
+              "ethereal",
+              "whimsy",
+              "cosmic",
+              "celestial",
+              "mystical",
+              "wistful",
+            ],
           },
           {
             id: "cat-relation",
@@ -124,6 +184,10 @@ export function useMoodLogic() {
               "hurtful",
               "longing",
               "sweet",
+              "lonely",
+              "infatuated",
+              "flirtatious",
+              "passionate",
               "bittersweet",
               "objectifying",
               "avaracious",
@@ -289,12 +353,23 @@ export function useMoodLogic() {
     );
     if (!topMoodKey) return null;
 
-    const moodConfig =
+    // Check default first
+    let moodConfig =
       activeLegendMoodsState.value.find((m) => m && m.id === topMoodKey) ||
       moodMatrixConfig[topMoodKey];
+
+    // Check AI Custom next
+    if (!moodConfig && permanentCustomMoods.value) {
+      moodConfig = permanentCustomMoods.value.find(
+        (m) => m && m.id === topMoodKey,
+      );
+    }
+
     return {
       id: topMoodKey,
-      label: moodConfig ? moodConfig.name || moodConfig.label : "Alternative",
+      label: moodConfig
+        ? moodConfig.name || moodConfig.label
+        : topMoodKey.charAt(0).toUpperCase() + topMoodKey.slice(1),
       emoticon: moodConfig ? moodConfig.emoticon : "🎵",
     };
   };
@@ -382,11 +457,19 @@ export function useMoodLogic() {
     // --- Energy & Intensity ---
     chill: {
       label: "Energetic",
-      query: "fast high-energy party electronic dance hyperpop",
+      query: "fast high-energy party electronic dance hyperpop upbeat",
     },
     energetic: {
       label: "Chill",
       query: "lofi relaxation calm ambient slow-tempo minimalist",
+    },
+    upbeat: {
+      label: "Melancholic",
+      query: "melancholic downtempo somber moody dark-pop sad",
+    },
+    melancholic: {
+      label: "Upbeat",
+      query: "upbeat dance pop disco joyful celebratory synthpop",
     },
 
     // --- Core Emotions ---
@@ -396,58 +479,185 @@ export function useMoodLogic() {
     },
     sad: {
       label: "Happy",
-      query: "happy cheerful uplifting bright joyful feel-good",
+      query: "happy cheerful uplifting bright joyful feel-good pop",
+    },
+    igniting: {
+      label: "Pleading",
+      query: "pleading desperate vulnerable raw emotional slow ballad",
+    },
+    pleading: {
+      label: "Igniting",
+      query: "igniting anthem festival house mainstage crowd-pleaser hype",
+    },
+    uplifting: {
+      label: "Harrowing",
+      query: "harrowing creepy dread terrifying noise-rock experimental horror",
+    },
+    harrowing: {
+      label: "Uplifting",
+      query: "uplifting cinematic epic soaring inspiring triumphant",
+    },
+    euphoric: {
+      label: "Tormented",
+      query: "tormented angsty heavy metal dark depressive doom-metal grunge",
+    },
+    tormented: {
+      label: "Euphoric",
+      query: "euphoric trance progressive-house uplifting-dance bliss pop",
+    },
+    heroic: {
+      label: "Lonely",
+      query: "lonely isolated minimalist quiet slow acoustic indie-folk",
+    },
+    lonely: {
+      label: "Heroic",
+      query: "heroic orchestral epic cinematic brass triumphant powerful",
     },
 
-    // --- Aggression vs. Peace ---
+    // --- Aggression & Rebellion vs. Peace & Control ---
     angry: {
       label: "Peaceful",
       query: "peaceful serene meditative gentle acoustic soft-piano",
     },
-    peaceful: {
-      label: "Angry",
-      query: "angry aggressive metal hardcore heavy-distortion intense",
+    fiery: {
+      label: "Chill",
+      query: "lofi chillout relaxed calm lazy-afternoon smooth-jazz",
     },
-
-    // --- Vibe & Texture ---
-    mysterious: {
-      label: "Clear & Direct",
-      query: "pop straightforward acoustic singer-songwriter classic-rock",
+    furious: {
+      label: "Chill",
+      query: "ambient relaxation meditative peaceful healing-tones",
     },
-    clear_direct: {
-      // CamelCase or snake_case recommended for object keys
-      label: "Mysterious",
+    agitated: {
+      label: "Grounded",
+      query: "grounded deep-bass slow-groove lo-fi roots acoustic",
+    },
+    empowered: {
+      label: "Nervous",
+      query: "nervous twitchy anxious lo-fi experimental glitch jittery",
+    },
+    nervous: {
+      label: "Empowered",
+      query: "empowered confident bold stadium-rock hip-hop anthem brass",
+    },
+    reckless: {
+      label: "Conscious",
       query:
-        "mysterious eerie dark-ambient suspenseful experimental industrial",
+        "conscious conscious-hip-hop lyrical jazzy neo-soul thought-provoking",
+    },
+    conscious: {
+      label: "Reckless",
+      query: "reckless punk-rock garage-rock trashy wild party house",
+    },
+    rebellious: {
+      label: "Restrictive",
+      query:
+        "restrictive clinical dark-techno minimalist industrial metronomic",
+    },
+    restrictive: {
+      label: "Rebellious",
+      query: "rebellious punk grunge anti-establishment riot-grrrl anarchic",
+    },
+    vindictive: {
+      label: "Romantic",
+      query: "romantic love-song sensual passionate sweet intimate r&b",
+    },
+    toxic: {
+      label: "Wholesome",
+      query:
+        "wholesome bright uplifting cozy feel-good pure indie-pop acoustic",
+    },
+    haunting: {
+      label: "Comforting",
+      query: "warm cozy comfort lofi smooth acoustic neo-soul peaceful",
     },
 
-    ethereal: {
+    // --- Vibe, Texture & State of Mind ---
+    funky: {
+      label: "Apocalyptic",
+      query: "apocalyptic dark-ambient industrial drone wasteland doomsday",
+    },
+    apocalyptic: {
+      label: "Funky",
+      query: "funky groove bass-heavy disco retro slap-bass danceable",
+    },
+    disoriented: {
       label: "Grounded",
       query: "grounded roots folk blues standard classic-rock raw-acoustic",
     },
     grounded: {
-      label: "Ethereal",
-      query: "ethereal dreamy shoegaze ambient atmospheric celestial dream-pop",
+      label: "Disoriented",
+      query:
+        "disoriented psychedelic acid-rock phaser glitch experimental trippy",
+    },
+    hypnotic: {
+      label: "Funky",
+      query: "funky upbeat dynamic unpredictable syncopated breaks",
+    },
+    reflective: {
+      label: "Energetic",
+      query: "fast high-energy party electronic dance hyperpop",
     },
 
-    // --- Social & Relational ---
+    // --- Space, Fantasy & Mysticism ---
+    mysterious: {
+      label: "Clear & Direct",
+      query: "pop straightforward acoustic singer-songwriter classic-rock",
+    },
+    ethereal: {
+      label: "Grounded",
+      query: "grounded roots folk blues standard classic-rock raw-acoustic",
+    },
+    whimsical: {
+      label: "Apocalyptic",
+      query: "apocalyptic heavy-industrial grim dark-techno noise",
+    },
+    wistful: {
+      label: "Fiery",
+      query: "fiery aggressive high-octane rock hard-hitting trap fast",
+    },
+    cosmic: {
+      label: "Grounded",
+      query:
+        "grounded organic acoustic-folk country blues roots-rock earth-tones",
+    },
+    celestial: {
+      label: "Grounded",
+      query: "grounded organic raw-acoustic field-recordings dusty-blues",
+    },
+    mystical: {
+      label: "Clear & Direct",
+      query: "clean pop clear acoustic standard simple singer-songwriter",
+    },
+
+    // --- Social, Relational & Obsession ---
     romantic: {
-      label: "Bitter & Cynical",
-      query: "bitter resentful heartbreak angst aggressive-breakup dark",
+      label: "Vindictive",
+      query:
+        "vindictive bitter resentful heartbreak angst aggressive-breakup dark",
     },
-    bitter_cynical: {
-      label: "Romantic",
-      query: "romantic love-song sensual passionate sweet intimate r&b",
+    objectifying: {
+      label: "Infatuated",
+      query: "infatuated sweet dreamy indie-pop cute bubbly love-song",
     },
-
-    // --- Tempo & Motion ---
-    upbeat: {
+    infatuated: {
+      label: "Objectifying",
+      query: "objectifying club hip-hop heavy-bass sleek dark-pop gritty-r&b",
+    },
+    obsessive: {
+      label: "Chill",
+      query: "chill relaxed laid-back carefree breezy instrumental-lofi",
+    },
+    flirtatious: {
       label: "Melancholic",
-      query: "melancholic downtempo somber moody dark-pop",
+      query: "melancholic sad somber lonely downcast grey",
     },
-    melancholic: {
-      label: "Upbeat",
-      query: "upbeat dance pop disco joyful celebratory synthpop",
+    passionate: {
+      label: "Chill",
+      query: "ambient quiet-storm minimalist calm relaxed cold-ambient",
+    },
+    nostalgic: {
+      label: "Apocalyptic",
+      query: "apocalyptic futuristic cyberpunk industrial dystopia sci-fi",
     },
   };
 

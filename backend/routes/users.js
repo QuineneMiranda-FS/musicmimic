@@ -35,19 +35,36 @@ router.put("/profile/mood-settings", async (req, res, next) => {
     const user = await User.findByPk(req.user.userId);
     if (!user) return res.status(404).json({ error: "Profile not found." });
 
-    user.moodSettings = {
-      privacyShield: req.body.privacyShield,
-      privacyShieldOnce: req.body.privacyShieldOnce,
-      permanentCustomMoods: req.body.permanentCustomMoods || [],
-      customCategories: req.body.customCategories || [],
-      activeLegendMoodsState: req.body.activeLegendMoodsState || [],
+    const currentSettings = user.moodSettings || {};
+
+    const updatedSettings = {
+      privacyShield:
+        req.body.privacyShield ?? currentSettings.privacyShield ?? false,
+      privacyShieldOnce:
+        req.body.privacyShieldOnce ??
+        currentSettings.privacyShieldOnce ??
+        false,
+      permanentCustomMoods:
+        req.body.permanentCustomMoods ||
+        currentSettings.permanentCustomMoods ||
+        [],
+      customCategories:
+        req.body.customCategories || currentSettings.customCategories || [],
+      activeLegendMoodsState:
+        req.body.activeLegendMoodsState ||
+        currentSettings.activeLegendMoodsState ||
+        [],
     };
+
+    user.moodSettings = updatedSettings;
 
     user.changed("moodSettings", true);
 
-    await user.save();
+    await user.save({ fields: ["moodSettings"] });
+
     return res.json({ success: true, moodSettings: user.moodSettings });
   } catch (error) {
+    console.error("Error updating user mood settings:", error);
     next(error);
   }
 });

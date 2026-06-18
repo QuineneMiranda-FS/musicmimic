@@ -52,7 +52,7 @@
               </div>
 
               <div
-                v-else-if="results.tracks.length === 0"
+                v-else-if="hasSearched && filteredTracks.length === 0"
                 class="status-message"
               >
                 <p>
@@ -61,10 +61,13 @@
                 </p>
               </div>
 
-              <div v-else class="column-grid">
+              <div
+                v-if="hasSearched && filteredTracks.length > 0"
+                class="column-grid"
+              >
                 <div
                   v-for="track in filteredTracks"
-                  :key="track.id"
+                  :key="'search-' + (track.id || track.spotifyId)"
                   class="card track-card search-result-card"
                   :class="[
                     track.mood ? `mood-${track.mood.trim().toLowerCase()}` : '',
@@ -95,7 +98,6 @@
                 </div>
               </div>
             </div>
-
             <div v-if="activeTab === 'albums'">
               <div v-if="!hasSearched" class="status-message">
                 <p>Your Spotify is connected! Type above to search albums.</p>
@@ -191,57 +193,95 @@
           v-if="reversedHistory.length"
           class="column-panel history-full-row-panel animate-fade-in"
         >
-          <div class="history-section-header">
+          <div
+            class="history-section-header"
+            style="flex-direction: column; align-items: flex-start; gap: 12px"
+          >
             <h2>I Saw You Looking At These Songs:</h2>
-            <button
-              @click="clearOnlyVisualHistory"
-              class="clear-history-action-btn"
-            >
-              Clear List
-            </button>
-          </div>
-          <div class="history-grid-row">
-            <div
-              v-for="(track, index) in reversedHistory"
-              :key="(track.id || track.spotifyId) + '-' + index"
-              class="card track-card history-mini-card"
-              :class="
-                track.mood ? `mood-${track.mood.trim().toLowerCase()}` : ''
-              "
-              @click="goToSongDetailsPage(track)"
-            >
+
+            <div class="tabs-header-row" style="margin-bottom: 0; width: 100%">
               <button
-                class="delete-history-item-btn"
-                @click.stop="deleteSongFromHistory(track.id)"
-                title="Remove song from history & mood calculations"
+                class="tab-nav-btn"
+                :class="{ 'is-active': activeHistoryTab === 'daily' }"
+                @click="activeHistoryTab = 'daily'"
               >
-                &times;
+                Daily
+              </button>
+              <button
+                class="tab-nav-btn"
+                :class="{ 'is-active': activeHistoryTab === 'weekly' }"
+                @click="activeHistoryTab = 'weekly'"
+              >
+                Weekly
+              </button>
+              <button
+                class="tab-nav-btn"
+                :class="{ 'is-active': activeHistoryTab === 'monthly' }"
+                @click="activeHistoryTab = 'monthly'"
+              >
+                Monthly
               </button>
 
-              <div class="history-period-badges">
-                <span v-if="track.isDailyEligible" class="badge badge-day"
-                  >D</span
-                >
-                <span v-if="track.isWeeklyEligible" class="badge badge-week"
-                  >W</span
-                >
-                <span v-if="track.isMonthlyEligible" class="badge badge-month"
-                  >M</span
-                >
-              </div>
+              <button
+                @click="clearOnlyVisualHistory"
+                class="clear-history-action-btn"
+                style="margin-left: auto"
+              >
+                Clear List
+              </button>
+            </div>
+          </div>
 
-              <div class="card-media-wrapper">
-                <img :src="track.image || 'fallback.jpg'" alt="Album Art" />
-              </div>
+          <div class="tab-content-window" style="margin-top: 20px">
+            <div v-if="tabbedHistory.length === 0" class="status-message">
+              <p>No songs recorded in this timeframe yet.</p>
+            </div>
 
-              <div class="card-text-block">
-                <div class="track-header">
-                  <h3>{{ track.name }}</h3>
-                  <div class="mood-display-block">
-                    <span class="mood-emoticon">{{ track.emoticon }}</span>
-                  </div>
+            <div v-else class="history-grid-row">
+              <div
+                v-for="(track, index) in tabbedHistory"
+                :key="
+                  'hist-' + (track.id || track.spotifyId || index) + '-' + index
+                "
+                class="card track-card history-mini-card"
+                :class="
+                  track.mood ? `mood-${track.mood.trim().toLowerCase()}` : ''
+                "
+                @click="goToSongDetailsPage(track)"
+              >
+                <button
+                  class="delete-history-item-btn"
+                  @click.stop="deleteSongFromHistory(track.id)"
+                  title="Remove song from history & mood calculations"
+                >
+                  &times;
+                </button>
+
+                <div class="history-period-badges">
+                  <span v-if="track.isDailyEligible" class="badge badge-day"
+                    >D</span
+                  >
+                  <span v-if="track.isWeeklyEligible" class="badge badge-week"
+                    >W</span
+                  >
+                  <span v-if="track.isMonthlyEligible" class="badge badge-month"
+                    >M</span
+                  >
                 </div>
-                <p>{{ track.artist }}</p>
+
+                <div class="card-media-wrapper">
+                  <img :src="track.image || 'fallback.jpg'" alt="Album Art" />
+                </div>
+
+                <div class="card-text-block">
+                  <div class="track-header">
+                    <h3>{{ track.name }}</h3>
+                    <div class="mood-display-block">
+                      <span class="mood-emoticon">{{ track.emoticon }}</span>
+                    </div>
+                  </div>
+                  <p>{{ track.artist }}</p>
+                </div>
               </div>
             </div>
           </div>
@@ -257,6 +297,8 @@ import MoodDisplay from "../components/MoodDisplay.vue";
 
 const {
   activeTab,
+  activeHistoryTab,
+  tabbedHistory,
   activeRingTab,
   selectedMoodFilter,
   clickedMoodsHistory,

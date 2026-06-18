@@ -1,3 +1,4 @@
+import axios from "axios";
 import { ref, computed, nextTick, onMounted } from "vue";
 import { useSearchLogic } from "./search.js";
 import { useMoodLogic } from "./mood.js";
@@ -5,6 +6,7 @@ import { useHistoryLogic } from "./history.js";
 
 export function useSearchViewLogic() {
   const activeTab = ref("tracks");
+  const activeHistoryTab = ref("daily");
   const selectedMoodFilter = ref(null);
   const isRingSearching = ref(false);
 
@@ -45,7 +47,6 @@ export function useSearchViewLogic() {
       }
     }
 
-    // Fetch History
     await refreshHistory();
 
     if (moodLogic?.clickedMoodsHistory) {
@@ -192,7 +193,6 @@ export function useSearchViewLogic() {
     });
   });
 
-  // Click Handling
   const handleTrackClick = async (track) => {
     if (moodLogic?.isSpyingStopped && !moodLogic.isSpyingStopped.value) {
       await logTrackInteraction(track);
@@ -220,31 +220,44 @@ export function useSearchViewLogic() {
     }
   };
 
-  // Newest First History
   const reversedHistory = computed(() => {
     const history = moodLogic?.clickedMoodsHistory?.value;
+    // ** No null or empty arrays **
     if (!history || !Array.isArray(history) || history.length === 0) return [];
 
-    const dailyTracks = history.filter(
-      (track) =>
-        track && track.isDailyEligible !== false && track.isDailyEligible !== 0,
-    );
-
-    return [...dailyTracks].sort((a, b) => {
-      if (a.id && b.id && !isNaN(a.id) && !isNaN(b.id)) {
-        return Number(b.id) - Number(a.id);
-      }
-
-      // Fallback
-      const timeA = a.timestamp || 0;
-      const timeB = b.timestamp || 0;
-      return timeB - timeA;
-    });
+    return history
+      .filter((track) => track !== null && track !== undefined)
+      .sort((a, b) => {
+        if (a.id && b.id && !isNaN(a.id) && !isNaN(b.id)) {
+          return Number(b.id) - Number(a.id);
+        }
+        const timeA = a.timestamp || 0;
+        const timeB = b.timestamp || 0;
+        return timeB - timeA;
+      });
   });
 
-  const clearOnlyVisualHistory = async () => {
+  const tabbedHistory = computed(() => {
+    const sortedList = reversedHistory.value || [];
+
+    const cleanList = sortedList.filter(
+      (track) => track && typeof track === "object",
+    );
+
+    if (activeHistoryTab.value === "daily") {
+      return cleanList.filter((track) => track.isDailyEligible);
+    } else if (activeHistoryTab.value === "weekly") {
+      return cleanList.filter((track) => track.isWeeklyEligible);
+    } else if (activeHistoryTab.value === "monthly") {
+      return cleanList.filter((track) => track.isMonthlyEligible);
+    }
+    return cleanList;
+  });
+
+  const handleClearHistoryAction = async () => {
     try {
       await clearAllHistory();
+
       if (moodLogic?.clickedMoodsHistory?.value) {
         moodLogic.clickedMoodsHistory.value =
           moodLogic.clickedMoodsHistory.value.map((track) => {
@@ -257,15 +270,9 @@ export function useSearchViewLogic() {
             return track;
           });
       }
-
-      // Refresh
-      await refreshHistory();
-      if (moodLogic?.clickedMoodsHistory) {
-        moodLogic.clickedMoodsHistory.value = [...historyTracks.value];
-      }
     } catch (error) {
       console.error(
-        "Failed to smoothly clear daily visual history stream:",
+        "Failed to gracefully execute daily evaluation clear:",
         error,
       );
     }
@@ -307,9 +314,10 @@ export function useSearchViewLogic() {
   };
 
   const filteredTracks = computed(() => {
-    if (!searchLogic.results.value?.tracks) return [];
-    if (!selectedMoodFilter.value) return searchLogic.results.value.tracks;
-    return searchLogic.results.value.tracks.filter(
+    const tracks = searchLogic?.results?.value?.tracks || [];
+    if (!selectedMoodFilter.value) return tracks;
+
+    return tracks.filter(
       (t) => t && t.mood?.trim().toLowerCase() === selectedMoodFilter.value,
     );
   });
@@ -318,35 +326,101 @@ export function useSearchViewLogic() {
     const currentId = moodLogic?.currentSelectedMood?.value?.id;
     if (!currentId || !moodLogic?.moodOppositesMap)
       return "I'd rather be Alternative";
+
     const oppositeData = moodLogic.moodOppositesMap[currentId];
-    return oppositeData
-      ? `I'd rather be ${oppositeData.label}`
-      : "I'd rather be Alternative";
+    if (oppositeData) {
+      return `I'd rather be ${oppositeData.label}`;
+    }
+
+    const cleanLabel = moodLogic.currentSelectedMood.value.label;
+    return `I'd rather flip ${cleanLabel}`;
   });
 
   const triggerAlternativeSearch = async (type) => {
-    const currentId = moodLogic?.currentSelectedMood?.value?.id;
-    if (!currentId) return;
+    const currentMoodObj = moodLogic?.currentSelectedMood?.value;
+    if (!currentMoodObj || !currentMoodObj.id) return;
+
+    const currentId = String(currentMoodObj.id).toLowerCase().trim();
+    const currentLabel = currentMoodObj.label;
+
+    if (searchLogic?.searchQuery) {
+      searchLogic.searchQuery.value = "";
+    }
+
+    if (searchLogic?.results?.value) {
+      searchLogic.results.value.tracks = [];
+    }
+
     if (type === "same") {
-      selectedMoodFilter.value = currentId;
+      selectedMoodFilter.value = null;
+      isRingSearching.value = true;
+      if (searchLogic?.hasSearched) searchLogic.hasSearched.value = true;
+
+      try {
+        const response = await axios.get("/api/tracks/recommendations", {
+          params: {
+            mood: currentLabel,
+            title: "Seed Focus",
+            artist: "Current Rotation",
+          },
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("app_jwt")}`,
+          },
+        });
+
+        if (searchLogic?.results?.value && response.data) {
+          searchLogic.results.value.tracks = response.data.map((track) => ({
+            id: track.spotifyId || track.id,
+            name: track.title,
+            artist: track.artist,
+            image: track.image || "fallback.jpg",
+            mood: currentId,
+            emoticon: currentMoodObj.emoticon,
+          }));
+        }
+      } catch (err) {
+        console.error(
+          "Failed to fetch similar mood tracks over the network:",
+          err,
+        );
+      } finally {
+        isRingSearching.value = false;
+      }
     } else {
       selectedMoodFilter.value = null;
       isRingSearching.value = true;
+
       if (searchLogic?.searchQuery && moodLogic?.moodOppositesMap) {
-        searchLogic.searchQuery.value =
-          moodLogic.moodOppositesMap[currentId]?.query ||
-          "new alternative music";
+        const mappedOpposite = moodLogic.moodOppositesMap[currentId];
+
+        if (mappedOpposite && mappedOpposite.query) {
+          searchLogic.searchQuery.value = mappedOpposite.query;
+        } else {
+          searchLogic.searchQuery.value =
+            "chillout ambient lo-fi relaxation calm";
+          console.warn(
+            `No explicit opposite mapping found for mood: "${currentId}". Defaulting fallback query.`,
+          );
+        }
       }
+
       try {
         await handleSearchSubmit();
+      } catch (err) {
+        console.error("Failed executing mood ring alternative shift:", err);
       } finally {
         isRingSearching.value = false;
+        if (searchLogic?.searchQuery) {
+          searchLogic.searchQuery.value = "";
+        }
       }
     }
   };
 
   return {
     activeTab,
+    activeHistoryTab,
+    tabbedHistory,
     selectedMoodFilter,
     isRingSearching,
     activeLegendMoods,
@@ -355,7 +429,7 @@ export function useSearchViewLogic() {
     oppositeMoodButtonText,
     handleSearchSubmit,
     handleTrackClick,
-    clearOnlyVisualHistory,
+    clearOnlyVisualHistory: handleClearHistoryAction,
     triggerAlternativeSearch,
     handleQuestionMarkClick,
     deleteSongFromHistory,
