@@ -7,20 +7,55 @@ const openai = new OpenAI({
   baseURL: "http://localhost:11434/v1",
 });
 
+// Fallback Custom Mood = Misc
+const MISC_GROUP = "Miscellaneous Vibes";
+
 const defaultMoodMatrix = [
-  { mood: "Energetic", emoticon: "⚡" },
-  { mood: "Angry", emoticon: "🔥" },
+  { mood: "Energetic", emoticon: "🕺" },
+  { mood: "Upbeat", emoticon: "⚡" },
+  { mood: "Funky", emoticon: "🍄" },
   { mood: "Happy", emoticon: "☀️" },
-  { mood: "Upbeat", emoticon: "🕺" },
+  { mood: "Igniting", emoticon: "🙌" },
+  { mood: "Uplifting", emoticon: "🌊" },
+  { mood: "Heroic", emoticon: "🏆" },
+  { mood: "Euphoric", emoticon: "🤪" },
   { mood: "Chill", emoticon: "🌊" },
+  { mood: "Grounded", emoticon: "🪵" },
+  { mood: "Nostalgic", emoticon: "📼" },
+  { mood: "Disoriented", emoticon: "😕" },
+  { mood: "Conscious", emoticon: "🧐" },
+  { mood: "Hypnotic", emoticon: "🌀" },
+  { mood: "Reflective", emoticon: "🪞" },
   { mood: "Melancholic", emoticon: "🌧️" },
+  { mood: "Sad", emoticon: "😥" },
+  { mood: "Harrowing", emoticon: "😱" },
+  { mood: "Tormented", emoticon: "😩" },
+  { mood: "Pleading", emoticon: "🥺" },
+  { mood: "Nervous", emoticon: "😬" },
+  { mood: "Angry", emoticon: "😡" },
+  { mood: "Fiery", emoticon: "🔥" },
+  { mood: "Empowered", emoticon: "💪" },
+  { mood: "Agitated", emoticon: "😤" },
+  { mood: "Furious", emoticon: "🤬" },
+  { mood: "Reckless", emoticon: "😈" },
+  { mood: "Rebellious", emoticon: "🏴‍☠️" },
+  { mood: "Vindictive", emoticon: "😼" },
+  { mood: "Apocalyptic", emoticon: "🧟" },
   { mood: "Romantic", emoticon: "💖" },
+  { mood: "Objectifying", emoticon: "🔍" },
+  { mood: "Lonely", emoticon: "😔" },
+  { mood: "Infatuated", emoticon: "🥰" },
+  { mood: "Obsessive", emoticon: "😍" },
+  { mood: "Flirtatious", emoticon: "😉" },
+  { mood: "Passionate", emoticon: "💋" },
   { mood: "Mysterious", emoticon: "🔮" },
   { mood: "Ethereal", emoticon: "✨" },
-  { mood: "Grounded", emoticon: "🪵" },
-  { mood: "Sad", emoticon: "😥" },
-  { mood: "Nostalgic", emoticon: "📼" },
-  { mood: "Objectifying", emoticon: "🔍" },
+  { mood: "Whimsical", emoticon: "🧚" },
+  { mood: "Wistful", emoticon: "🧞" },
+  { mood: "Cosmic", emoticon: "🌌" },
+  { mood: "Celestial", emoticon: "🪐" },
+  { mood: "Mystical", emoticon: "👁️" },
+  { mood: "Restrictive", emoticon: "🔒" },
 ];
 
 function parseAIJsonResponse(content) {
@@ -29,6 +64,27 @@ function parseAIJsonResponse(content) {
     cleanContent = cleanContent.replace(/^```json|```$/g, "").trim();
   }
   return JSON.parse(cleanContent);
+}
+
+// Helper for uni strings
+function cleanEmojiEncoding(emojiStr) {
+  if (!emojiStr) return "🎵";
+
+  let clean = emojiStr.trim();
+
+  // ** Matches U+1FXXX or \u1FXXX formats
+  const unicodeRegex = /(?:U\+|\u|\\u)([0-9A-Fa-f]{4,6})/i;
+  const match = clean.match(unicodeRegex);
+
+  if (match && match[1]) {
+    try {
+      return String.fromCodePoint(parseInt(match[1], 16));
+    } catch (e) {
+      console.warn("[Unicode Conversion Error]:", e.message);
+    }
+  }
+
+  return clean;
 }
 
 async function analyzeTrackMood(title, artist, lyricsText) {
@@ -45,22 +101,23 @@ async function analyzeTrackMood(title, artist, lyricsText) {
     const aiResponse = await openai.chat.completions.create({
       model: "llama3",
       response_format: { type: "json_object" },
-      //Heh Ask AI how to ask AI
       messages: [
         {
           role: "system",
           content: `You are an expert music curator. Analyze the emotional depth, tone, and cultural context of this song using its title, artist, and lyrics.
-          Our application uses a set of baseline legend categories: [${baselineOptions}]. 
+          Our application uses a detailed matrix of baseline mood categories: [${baselineOptions}]. 
           
-          CRITICAL DIRECTIONS:
-          1. Create a descriptive custom mood category representing the song's exact unique nuance (e.g., "Nostalgic", "Rebellious", "Spooky"). Keep this label to exactly one capitalized word containing only letters.
-          2. Match your custom mood with a single highly relevant unicode emoji.
-          3. Map this custom mood back to one of our core baseline legend categories: [${baselineMoodNames.join(", ")}]. Choose the baseline that is the closest emotional fit.
+          CRITICAL SELECTION PROCESS:
+          1. Check if the track's mood directly aligns with any existing category in our baseline matrix list: [${baselineMoodNames.join(", ")}]. If an existing mood fits well, select it as your "customMood" and use its exact baseline emoticon character.
+          2. Only if the track has a highly specific nuance that is *completely missing* from the matrix list, you may invent a brand-new custom mood label. It must be exactly one capitalized word containing only letters, paired with a highly relevant, actual visual emoji symbol character. Do not output text like "U+1F600".
+          3. For the "baselineLegendMood" field: 
+             - If you reused an existing mood from step 1, "baselineLegendMood" MUST match that exact string.
+             - If you created a brand-new mood in step 2, you MUST set "baselineLegendMood" to exactly "${MISC_GROUP}".
           
           Output a raw JSON object with exactly three keys:
-          - "customMood": (The unique capitalized string name, letters only)
-          - "emoticon": (The chosen emoji symbol)
-          - "baselineLegendMood": (Must perfectly match one of the strings in the baseline legend list)`,
+          - "customMood": (The chosen mood name string; prioritize reusing one from the baseline list if it fits)
+          - "emoticon": (The corresponding emoji character symbol)
+          - "baselineLegendMood": (Must perfectly match one of the exact strings in the baseline list OR be "${MISC_GROUP}")`,
         },
         {
           role: "user",
@@ -78,19 +135,22 @@ async function analyzeTrackMood(title, artist, lyricsText) {
           cleanedLabel.charAt(0).toUpperCase() +
           cleanedLabel.slice(1).toLowerCase();
 
-        const validatedBaseline = baselineMoodNames.includes(
-          parsed.baselineLegendMood.trim(),
-        )
-          ? parsed.baselineLegendMood.trim()
-          : null;
+        const finalEmoji = cleanEmojiEncoding(parsed.emoticon);
+
+        const responseGroup = parsed.baselineLegendMood.trim();
+        const validatedBaseline =
+          baselineMoodNames.includes(responseGroup) ||
+          responseGroup === MISC_GROUP
+            ? responseGroup
+            : null;
 
         if (cleanedLabel && validatedBaseline) {
           console.log(
-            `[Ollama] Successfully tagged mood [${cleanedLabel} ${parsed.emoticon.trim()}] -> Mapped to: ${validatedBaseline}`,
+            `[Ollama] Successfully tagged mood [${cleanedLabel} ${finalEmoji}] -> Mapped to Legend Group: ${validatedBaseline}`,
           );
           return {
             label: cleanedLabel,
-            emoji: parsed.emoticon.trim(),
+            emoji: finalEmoji,
             legendGroup: validatedBaseline,
           };
         }
