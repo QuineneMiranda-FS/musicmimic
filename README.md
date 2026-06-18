@@ -93,7 +93,7 @@ npx sequelize-cli db:migrate
 
 > **Note:** Because the application binds mock history records to a real user account, you need to finish the Frontend Setup and Running the Application steps below.
 
-Once app is fired up, return to your backend terminal and run the seeder:
+Once app is fired up, return to your `backend/` terminal and run the seeder:
 
 ```bash
 npx sequelize-cli db:seed:all
