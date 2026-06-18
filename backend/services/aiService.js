@@ -7,7 +7,6 @@ const openai = new OpenAI({
   baseURL: "http://localhost:11434/v1",
 });
 
-// Fallback Custom Mood = Misc
 const MISC_GROUP = "Miscellaneous Vibes";
 
 const defaultMoodMatrix = [
@@ -66,16 +65,11 @@ function parseAIJsonResponse(content) {
   return JSON.parse(cleanContent);
 }
 
-// Helper for uni strings
 function cleanEmojiEncoding(emojiStr) {
   if (!emojiStr) return "🎵";
-
   let clean = emojiStr.trim();
-
-  // ** Matches U+1FXXX or \u1FXXX formats
   const unicodeRegex = /(?:U\+|\u|\\u)([0-9A-Fa-f]{4,6})/i;
   const match = clean.match(unicodeRegex);
-
   if (match && match[1]) {
     try {
       return String.fromCodePoint(parseInt(match[1], 16));
@@ -83,8 +77,200 @@ function cleanEmojiEncoding(emojiStr) {
       console.warn("[Unicode Conversion Error]:", e.message);
     }
   }
-
   return clean;
+}
+
+function findCloseDefaultMatch(label) {
+  const lowerLabel = label.toLowerCase().trim();
+
+  // Similar Match to Defaults
+  const customSynonyms = {
+    // Energy & Intensity
+    energy: "Energetic",
+    energized: "Energetic",
+    hyper: "Energetic",
+    upbeatness: "Upbeat",
+    bouncy: "Upbeat",
+    funk: "Funky",
+    groovish: "Funky",
+    groovy: "Funky",
+    happiness: "Happy",
+    cheerful: "Happy",
+    joyful: "Happy",
+    glad: "Happy",
+    ignite: "Igniting",
+    hype: "Igniting",
+    exciting: "Igniting",
+    pumped: "Igniting",
+    uplift: "Uplifting",
+    inspiring: "Uplifting",
+    inspirational: "Uplifting",
+    hero: "Heroic",
+    epic: "Heroic",
+    triumphant: "Heroic",
+    cinematic: "Heroic",
+    euphoria: "Euphoric",
+    ecstatic: "Euphoric",
+    blissful: "Euphoric",
+    chilled: "Chill",
+    calm: "Chill",
+    relaxed: "Chill",
+    mellow: "Chill",
+    ground: "Grounded",
+    earthy: "Grounded",
+    rooted: "Grounded",
+    raw: "Grounded",
+
+    // Mind & Reflection
+    nostalgia: "Nostalgic",
+    retro: "Nostalgic",
+    throwback: "Nostalgic",
+    disorient: "Disoriented",
+    confused: "Disoriented",
+    dazed: "Disoriented",
+    blurry: "Disoriented",
+    "conscious-hip-hop": "Conscious",
+    woke: "Conscious",
+    aware: "Conscious",
+    mindful: "Conscious",
+    hypnotized: "Hypnotic",
+    trance: "Hypnotic",
+    mesmerizing: "Hypnotic",
+    psychedelic: "Hypnotic",
+    reflection: "Reflective",
+    thoughtful: "Reflective",
+    pensive: "Reflective",
+
+    // Melancholy, Sadness & Fear
+    melancholy: "Melancholic",
+    melancholious: "Melancholic",
+    somber: "Melancholic",
+    sadness: "Sad",
+    gloomy: "Sad",
+    depressed: "Sad",
+    weeping: "Sad",
+    heartbroken: "Sad",
+    harrow: "Harrowing",
+    terrifying: "Harrowing",
+    frightening: "Harrowing",
+    creepy: "Harrowing",
+    scary: "Harrowing",
+    torment: "Tormented",
+    agonized: "Tormented",
+    tortured: "Tormented",
+    anguished: "Tormented",
+    plead: "Pleading",
+    begging: "Pleading",
+    desperate: "Pleading",
+    vulnerable: "Pleading",
+    anxious: "Nervous",
+    anxiety: "Nervous",
+    jittery: "Nervous",
+    tense: "Nervous",
+
+    // Anger & Rebellion
+    anger: "Angry",
+    mad: "Angry",
+    enraged: "Angry",
+    fire: "Fiery",
+    intense: "Fiery",
+    aggressive: "Fiery",
+    explosive: "Fiery",
+    empower: "Empowered",
+    confident: "Empowered",
+    strong: "Empowered",
+    bold: "Empowered",
+    agitation: "Agitated",
+    frustrated: "Agitated",
+    irritated: "Agitated",
+    fury: "Furious",
+    livid: "Furious",
+    wrathful: "Furious",
+    wreckless: "Reckless",
+    wild: "Reckless",
+    carefree: "Reckless",
+    dangerous: "Reckless",
+    rebel: "Rebellious",
+    defiant: "Rebellious",
+    anarchic: "Rebellious",
+    revenge: "Vindictive",
+    vengeful: "Vindictive",
+    spiteful: "Vindictive",
+    bitter: "Vindictive",
+    apocalypse: "Apocalyptic",
+    dystopian: "Apocalyptic",
+    doomsday: "Apocalyptic",
+    ruined: "Apocalyptic",
+
+    // Social & Relational
+    romance: "Romantic",
+    loving: "Romantic",
+    sweet: "Romantic",
+    objectify: "Objectifying",
+    sensual: "Objectifying",
+    lustful: "Objectifying",
+    erotic: "Objectifying",
+    lone: "Lonely",
+    isolated: "Lonely",
+    solitary: "Lonely",
+    infatuation: "Infatuated",
+    smitten: "Infatuated",
+    crushing: "Infatuated",
+    obsession: "Obsessive",
+    fixated: "Obsessive",
+    addicted: "Obsessive",
+    flirt: "Flirtatious",
+    teasing: "Flirtatious",
+    coquettish: "Flirtatious",
+    passion: "Passionate",
+    ardent: "Passionate",
+    "intense-love": "Passionate",
+
+    // Space, Magic & Control
+    mystery: "Mysterious",
+    eerie: "Mysterious",
+    dark: "Mysterious",
+    dreamy: "Ethereal",
+    "celestial-dream": "Ethereal",
+    airy: "Ethereal",
+    atmospheric: "Ethereal",
+    whimsy: "Whimsical",
+    playful: "Whimsical",
+    fairytale: "Whimsical",
+    wistfulness: "Wistful",
+    yearning: "Wistful",
+    longing: "Wistful",
+    cosmos: "Cosmic",
+    spacey: "Cosmic",
+    galactic: "Cosmic",
+    celestia: "Celestial",
+    heavenly: "Celestial",
+    astral: "Celestial",
+    mystic: "Mystical",
+    magical: "Mystical",
+    occult: "Mystical",
+    spiritual: "Mystical",
+    restrict: "Restrictive",
+    confined: "Restrictive",
+    trapped: "Restrictive",
+    clinical: "Restrictive",
+  };
+
+  if (customSynonyms[lowerLabel]) {
+    return defaultMoodMatrix.find((m) => m.mood === customSynonyms[lowerLabel]);
+  }
+
+  // Fallback
+  for (const matrixObj of defaultMoodMatrix) {
+    const lowerDefault = matrixObj.mood.toLowerCase();
+    if (
+      lowerDefault.startsWith(lowerLabel) ||
+      lowerLabel.startsWith(lowerDefault)
+    ) {
+      return matrixObj;
+    }
+  }
+  return null;
 }
 
 async function analyzeTrackMood(title, artist, lyricsText) {
@@ -104,20 +290,19 @@ async function analyzeTrackMood(title, artist, lyricsText) {
       messages: [
         {
           role: "system",
-          content: `You are an expert music curator. Analyze the emotional depth, tone, and cultural context of this song using its title, artist, and lyrics.
-          Our application uses a detailed matrix of baseline mood categories: [${baselineOptions}]. 
+          content: `You are an expert music curator. Provide an accurate, highly descriptive assessment of this song's unique emotional mood using its title, artist, and lyrics.
           
-          CRITICAL SELECTION PROCESS:
-          1. Check if the track's mood directly aligns with any existing category in our baseline matrix list: [${baselineMoodNames.join(", ")}]. If an existing mood fits well, select it as your "customMood" and use its exact baseline emoticon character.
-          2. Only if the track has a highly specific nuance that is *completely missing* from the matrix list, you may invent a brand-new custom mood label. It must be exactly one capitalized word containing only letters, paired with a highly relevant, actual visual emoji symbol character. Do not output text like "U+1F600".
-          3. For the "baselineLegendMood" field: 
-             - If you reused an existing mood from step 1, "baselineLegendMood" MUST match that exact string.
-             - If you created a brand-new mood in step 2, you MUST set "baselineLegendMood" to exactly "${MISC_GROUP}".
+          DIRECTIONS:
+          1. Create an highly accurate, single-word capitalized custom mood label capturing the track's core vibe (e.g., "Haunting", "Gothic", "Sensual", "Rebellious"). Keep it to exactly one word containing only letters.
+          2. Pair this mood with an actual, highly expressive unicode emoji character symbol. Do not output raw code strings like "U+1F600".
+          3. For the "baselineLegendMood" field:
+             - Look at our master matrix list: [${baselineMoodNames.join(", ")}].
+             - Choose whichever category is the closest overall thematic umbrella anchor fit for your custom mood. If your mood matches perfectly, use that. If it is a completely distinct new vibe, map it to "${MISC_GROUP}".
           
           Output a raw JSON object with exactly three keys:
-          - "customMood": (The chosen mood name string; prioritize reusing one from the baseline list if it fits)
+          - "customMood": (The hyper-accurate creative mood label string)
           - "emoticon": (The corresponding emoji character symbol)
-          - "baselineLegendMood": (Must perfectly match one of the exact strings in the baseline list OR be "${MISC_GROUP}")`,
+          - "baselineLegendMood": (Must perfectly match an entry from the master list OR be "${MISC_GROUP}")`,
         },
         {
           role: "user",
@@ -135,9 +320,17 @@ async function analyzeTrackMood(title, artist, lyricsText) {
           cleanedLabel.charAt(0).toUpperCase() +
           cleanedLabel.slice(1).toLowerCase();
 
-        const finalEmoji = cleanEmojiEncoding(parsed.emoticon);
+        let finalEmoji = cleanEmojiEncoding(parsed.emoticon);
+        let responseGroup = parsed.baselineLegendMood.trim();
 
-        const responseGroup = parsed.baselineLegendMood.trim();
+        // AI Mood = Defaults ?
+        const smartMatch = findCloseDefaultMatch(cleanedLabel);
+        if (smartMatch) {
+          cleanedLabel = smartMatch.mood;
+          finalEmoji = smartMatch.emoticon;
+          responseGroup = smartMatch.mood;
+        }
+
         const validatedBaseline =
           baselineMoodNames.includes(responseGroup) ||
           responseGroup === MISC_GROUP
