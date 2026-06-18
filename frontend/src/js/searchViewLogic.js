@@ -340,7 +340,7 @@ export function useSearchViewLogic() {
     const currentMoodObj = moodLogic?.currentSelectedMood?.value;
     if (!currentMoodObj || !currentMoodObj.id) return;
 
-    const currentId = currentMoodObj.id;
+    const currentId = String(currentMoodObj.id).toLowerCase().trim();
     const currentLabel = currentMoodObj.label;
 
     if (searchLogic?.searchQuery) {
@@ -370,7 +370,7 @@ export function useSearchViewLogic() {
 
         if (searchLogic?.results?.value && response.data) {
           searchLogic.results.value.tracks = response.data.map((track) => ({
-            id: track.spotifyId,
+            id: track.spotifyId || track.id,
             name: track.title,
             artist: track.artist,
             image: track.image || "fallback.jpg",
@@ -392,10 +392,15 @@ export function useSearchViewLogic() {
 
       if (searchLogic?.searchQuery && moodLogic?.moodOppositesMap) {
         const mappedOpposite = moodLogic.moodOppositesMap[currentId];
-        if (mappedOpposite) {
+
+        if (mappedOpposite && mappedOpposite.query) {
           searchLogic.searchQuery.value = mappedOpposite.query;
         } else {
-          searchLogic.searchQuery.value = `${currentLabel} alternative radical shift flip mood`;
+          searchLogic.searchQuery.value =
+            "chillout ambient lo-fi relaxation calm";
+          console.warn(
+            `No explicit opposite mapping found for mood: "${currentId}". Defaulting fallback query.`,
+          );
         }
       }
 
