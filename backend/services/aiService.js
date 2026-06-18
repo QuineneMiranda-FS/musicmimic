@@ -67,7 +67,17 @@ function parseAIJsonResponse(content) {
 
 function cleanEmojiEncoding(emojiStr) {
   if (!emojiStr) return "🎵";
-  let clean = emojiStr.trim();
+
+  let clean = "";
+  if (typeof emojiStr === "object") {
+    const possibleValue = Object.values(emojiStr).find(
+      (val) => typeof val === "string",
+    );
+    clean = possibleValue ? possibleValue.trim() : "🎵";
+  } else {
+    clean = String(emojiStr).trim();
+  }
+
   const unicodeRegex = /(?:U\+|\u|\\u)([0-9A-Fa-f]{4,6})/i;
   const match = clean.match(unicodeRegex);
   if (match && match[1]) {

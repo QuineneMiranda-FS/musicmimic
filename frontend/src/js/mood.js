@@ -353,12 +353,23 @@ export function useMoodLogic() {
     );
     if (!topMoodKey) return null;
 
-    const moodConfig =
+    // Check default first
+    let moodConfig =
       activeLegendMoodsState.value.find((m) => m && m.id === topMoodKey) ||
       moodMatrixConfig[topMoodKey];
+
+    // Check AI Custom next
+    if (!moodConfig && permanentCustomMoods.value) {
+      moodConfig = permanentCustomMoods.value.find(
+        (m) => m && m.id === topMoodKey,
+      );
+    }
+
     return {
       id: topMoodKey,
-      label: moodConfig ? moodConfig.name || moodConfig.label : "Alternative",
+      label: moodConfig
+        ? moodConfig.name || moodConfig.label
+        : topMoodKey.charAt(0).toUpperCase() + topMoodKey.slice(1),
       emoticon: moodConfig ? moodConfig.emoticon : "🎵",
     };
   };
@@ -549,6 +560,15 @@ export function useMoodLogic() {
     vindictive: {
       label: "Romantic",
       query: "romantic love-song sensual passionate sweet intimate r&b",
+    },
+    toxic: {
+      label: "Wholesome",
+      query:
+        "wholesome bright uplifting cozy feel-good pure indie-pop acoustic",
+    },
+    haunting: {
+      label: "Comforting",
+      query: "warm cozy comfort lofi smooth acoustic neo-soul peaceful",
     },
 
     // --- Vibe, Texture & State of Mind ---
