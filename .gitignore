@@ -50,3 +50,12 @@ notes/
 .env.local
 .env.*.local
 *.pem
+
+# ---------------------------------------------------------------------
+# Jest / Code Coverage reports
+# ---------------------------------------------------------------------
+coverage/
+.jest/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
